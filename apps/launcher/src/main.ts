@@ -11,6 +11,7 @@ interface Manifest {
 
 interface Dashboard {
   host: string;
+  environment: "development" | "production";
   server?: { status: string; version: string };
   android?: Manifest;
   ios?: Manifest;
@@ -49,79 +50,137 @@ interface InstallFinished {
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
-  <header class="topbar">
-    <a class="brand" href="#" aria-label="Kanto Launcher home"><span class="mark">K</span>Kanto</a>
-    <div id="server-status" class="status status-loading" role="status"><span></span>Checking servers</div>
-  </header>
-  <main>
-    <section class="hero">
-      <p class="eyebrow">KANTO LAUNCHER</p>
-      <h1>Get into the game.<br><em>We’ll handle the fiddly bits.</em></h1>
-      <p class="intro">Choose your phone. Kanto checks the exact game file, applies the right update, and walks you through every confirmation.</p>
-    </section>
-    <section class="devices" aria-label="Choose your phone">
-      <article class="device" data-card="android">
-        <div><span class="platform-icon">A</span><span class="availability" id="android-version">Checking…</span></div>
-        <h2>Android</h2>
-        <p>Install and update directly on your phone.</p>
-        <p id="android-compatibility" class="compatibility" hidden></p>
-        <button data-start="android" disabled>Set up Android</button>
-      </article>
-      <article class="device" data-card="ios">
-        <div><span class="platform-icon">i</span><span class="availability" id="ios-version">Checking…</span></div>
-        <h2>iPhone or iPad</h2>
-        <p>Connect by USB and the desktop launcher guides signing and installation.</p>
-        <button data-start="ios" disabled>Set up iPhone</button>
-      </article>
-    </section>
-    <section id="setup" class="setup" hidden aria-live="polite">
-      <button class="close" data-close-setup aria-label="Close setup">×</button>
-      <p class="eyebrow">STEP 1 OF 3</p>
-      <h2 id="setup-title">Check the original game</h2>
-      <p>Kanto only accepts the exact supported version. The file never leaves your device.</p>
-      <div class="actions">
-        <button id="download-original" hidden>Download and prepare Kanto</button>
-        <button id="choose-original" class="secondary">Choose original file</button>
-        <button id="prepare-selected" hidden>Prepare Kanto</button>
-        <button id="install-android" hidden>Install Kanto</button>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="Kanto Launcher home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/>
+          <path class="mark-fold" d="M32 23l-9 9v-9z"/>
+          <g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g>
+        </svg>
+        <span><strong>Kanto</strong><small>Launcher</small></span>
+      </a>
+
+      <div class="client-summary">
+        <span class="client-icon" aria-hidden="true">K</span>
+        <div><small>Game client</small><strong id="sidebar-version">Checking…</strong></div>
       </div>
-      <p id="source-result" class="result" role="status"></p>
-    </section>
-    <section id="ios-install" class="setup" hidden>
-      <button class="close" data-close-setup aria-label="Close setup">×</button>
-      <p class="eyebrow">STEPS 2–3 OF 3</p>
-      <h2>Connect, sign and install</h2>
-      <p>Unlock your iPhone or iPad, connect it by USB, and tap Trust if asked. Your Apple password is never saved.</p>
-      <div class="field-row">
-        <label>Connected device
-          <select id="ios-device"><option value="">No device found</option></select>
-        </label>
-        <button id="refresh-ios" class="secondary">Refresh</button>
+
+      <ol class="journey" aria-label="Installation progress">
+        <li data-stage="prepare" class="current"><span>1</span><div><strong>Prepare</strong><small>Verify and patch</small></div></li>
+        <li data-stage="connect"><span>2</span><div><strong>Connect</strong><small>Phone and account</small></div></li>
+        <li data-stage="install"><span>3</span><div><strong>Install</strong><small>Sign and finish</small></div></li>
+      </ol>
+
+      <div class="sidebar-footer">
+        <span id="environment" class="environment">Local build</span>
+        <div id="server-status" class="status status-loading" role="status"><span></span>Checking servers</div>
       </div>
-      <form id="apple-login-fields" class="fields">
-        <label>Apple ID<input id="apple-email" type="email" autocomplete="username" placeholder="you@example.com" required></label>
-        <label>Password<input id="apple-password" type="password" autocomplete="current-password" required></label>
-        <button id="apple-login">Sign in securely</button>
-      </form>
-      <div id="apple-session-row" class="session-row" hidden>
-        <p id="apple-session" class="signed-in"></p>
-        <button id="change-apple-id" class="secondary">Use another Apple ID</button>
-      </div>
-      <form id="two-factor" class="two-factor" hidden>
-        <label>Apple verification code<input id="apple-code" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required></label>
-        <button id="submit-apple-code">Verify code</button>
-        <div id="sms-options" class="actions"></div>
-      </form>
-      <button id="install-ios" hidden>Sign and install Kanto</button>
-      <p id="ios-result" class="result" role="status"></p>
-    </section>
-    <p id="load-error" class="load-error" role="alert" hidden>Couldn’t reach Kanto. Check your connection and retry.</p>
-  </main>`;
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-bar">
+        <div><span>Installer</span><strong id="workspace-heading">Kanto setup</strong></div>
+        <span class="secure-note">Verified locally</span>
+      </header>
+
+      <section class="home-view">
+        <div class="home-main">
+          <p class="overline">READY TO INSTALL</p>
+          <h1>Kanto for your phone</h1>
+          <p class="intro">Choose the device you’re setting up. Kanto will prepare the correct game build and guide the rest.</p>
+
+          <div class="devices" aria-label="Choose your phone">
+            <article class="device" data-card="android">
+              <span class="platform-icon">Android</span>
+              <div class="device-copy"><h2>Android phone</h2><p>Prepare and install directly on this device.</p><p id="android-compatibility" class="compatibility" hidden></p></div>
+              <div class="device-action"><span class="availability" id="android-version">Checking…</span><button data-start="android" disabled>Set up</button></div>
+            </article>
+            <article class="device" data-card="ios">
+              <span class="platform-icon">iOS</span>
+              <div class="device-copy"><h2>iPhone or iPad</h2><p>Connect by USB, then Kanto signs and installs it.</p></div>
+              <div class="device-action"><span class="availability" id="ios-version">Checking…</span><button data-start="ios" disabled>Set up</button></div>
+            </article>
+          </div>
+        </div>
+
+        <aside class="release-info" aria-label="What Kanto Launcher does">
+          <p class="overline">THIS INSTALL</p>
+          <ul>
+            <li><span>01</span><div><strong>Original verified</strong><small>Wrong files are refused before anything changes.</small></div></li>
+            <li><span>02</span><div><strong>Patched on-device</strong><small>Your original game file stays on this computer.</small></div></li>
+            <li><span>03</span><div><strong>Guided install</strong><small>Every phone confirmation is explained as it appears.</small></div></li>
+          </ul>
+        </aside>
+      </section>
+
+      <section id="setup" class="setup" hidden aria-live="polite">
+        <button class="back" data-close-setup aria-label="Back to device selection">← Back</button>
+        <div class="step-heading"><span>1</span><div><p class="overline">PREPARE</p><h2 id="setup-title">Check the original game</h2></div></div>
+        <p class="step-copy">Kanto only accepts the exact supported version. The file is checked and patched locally.</p>
+        <div class="actions">
+          <button id="download-original" hidden>Download and prepare</button>
+          <button id="choose-original" class="secondary">Choose original file</button>
+          <button id="prepare-selected" hidden>Prepare Kanto</button>
+          <button id="install-android" hidden>Install Kanto</button>
+        </div>
+        <p id="source-result" class="result" role="status"></p>
+      </section>
+
+      <section id="ios-install" class="setup install-step" hidden>
+        <button class="back" data-close-setup aria-label="Back to device selection">← Back</button>
+        <div class="step-heading"><span>2</span><div><p class="overline">CONNECT &amp; INSTALL</p><h2>Finish on your iPhone</h2></div></div>
+        <p class="step-copy">Unlock your device, connect it by USB, and tap Trust if asked. Your Apple password is never saved.</p>
+        <div class="field-row">
+          <label>Connected device<select id="ios-device"><option value="">No device found</option></select></label>
+          <button id="refresh-ios" class="secondary">Refresh</button>
+        </div>
+        <form id="apple-login-fields" class="fields">
+          <label>Apple ID<input id="apple-email" type="email" autocomplete="username" placeholder="you@example.com" required></label>
+          <label>Password<input id="apple-password" type="password" autocomplete="current-password" required></label>
+          <button id="apple-login">Sign in securely</button>
+        </form>
+        <div id="apple-session-row" class="session-row" hidden>
+          <p id="apple-session" class="signed-in"></p>
+          <button id="change-apple-id" class="secondary">Change</button>
+        </div>
+        <form id="two-factor" class="two-factor" hidden>
+          <label>Apple verification code<input id="apple-code" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required></label>
+          <button id="submit-apple-code">Verify code</button>
+          <div id="sms-options" class="actions"></div>
+        </form>
+        <button id="install-ios" class="install-button" hidden>Sign and install Kanto</button>
+        <p id="ios-result" class="result" role="status"></p>
+      </section>
+
+      <p id="load-error" class="load-error" role="alert" hidden>Couldn’t reach Kanto. Check your connection and retry.</p>
+    </main>
+  </div>`;
 
 let dashboard: Dashboard | undefined;
 let activePlatform: Platform = "android";
 let selectedPath: string | undefined;
 let preparedPath: string | undefined;
+
+type Stage = "prepare" | "connect" | "install";
+
+function setStage(stage: Stage) {
+  const stages: Stage[] = ["prepare", "connect", "install"];
+  const current = stages.indexOf(stage);
+  document.querySelectorAll<HTMLElement>("[data-stage]").forEach((item) => {
+    const index = stages.indexOf(item.dataset.stage as Stage);
+    item.classList.toggle("current", index === current);
+    item.classList.toggle("complete", index < current);
+  });
+}
+
+function closeSetup() {
+  app.classList.remove("setup-active");
+  document.querySelector<HTMLElement>("#setup")!.hidden = true;
+  document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
+  document.querySelector("#workspace-heading")!.textContent = "Kanto setup";
+  setStage("prepare");
+}
 
 function manifest(platform: Platform): Manifest | undefined {
   return dashboard?.[platform];
@@ -130,6 +189,9 @@ function manifest(platform: Platform): Manifest | undefined {
 function showSetup(platform: Platform) {
   activePlatform = platform;
   app.classList.add("setup-active");
+  setStage("prepare");
+  document.querySelector("#workspace-heading")!.textContent =
+    platform === "android" ? "Android setup" : "iPhone setup";
   const setup = document.querySelector<HTMLElement>("#setup")!;
   document.querySelector("#setup-title")!.textContent =
     platform === "android" ? "Check the original Android game" : "Check the original iPhone game";
@@ -183,11 +245,13 @@ async function prepare(sourcePath?: string) {
     if (activePlatform === "android" && dashboard?.host === "android") {
       result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Tap Install Kanto.`;
       document.querySelector<HTMLButtonElement>("#install-android")!.hidden = false;
+      setStage("install");
     } else {
       result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Signing is next.`;
       await loadIosSetup();
       document.querySelector<HTMLElement>("#setup")!.hidden = true;
       document.querySelector<HTMLElement>("#ios-install")!.hidden = false;
+      setStage("connect");
     }
   } catch (error) {
     result.className = "result bad";
@@ -287,6 +351,7 @@ async function installIos() {
     return;
   }
   button.disabled = true;
+  setStage("install");
   result.className = "result checking";
   result.textContent = "Starting the secure signing process…";
   try {
@@ -316,6 +381,11 @@ async function installAndroid() {
 async function load() {
   try {
     dashboard = await invoke<Dashboard>("load_dashboard");
+    document.querySelector("#environment")!.textContent =
+      dashboard.environment === "development" ? "Development build" : "Production";
+    document.querySelector("#environment")!.className = `environment environment-${dashboard.environment}`;
+    document.querySelector("#sidebar-version")!.textContent =
+      dashboard.server ? `Kanto ${dashboard.server.version}` : "Unavailable";
     const status = document.querySelector<HTMLElement>("#server-status")!;
     const reported = dashboard.server?.status ?? "offline";
     const state = ["online", "degraded", "maintenance", "offline"].includes(reported)
@@ -354,6 +424,10 @@ async function load() {
 document.querySelectorAll<HTMLButtonElement>("[data-start]").forEach((button) =>
   button.addEventListener("click", () => showSetup(button.dataset.start as Platform)),
 );
+document.querySelector(".brand")!.addEventListener("click", (event) => {
+  event.preventDefault();
+  closeSetup();
+});
 document.querySelector("#choose-original")!.addEventListener("click", chooseOriginal);
 document.querySelector("#download-original")!.addEventListener("click", () => prepare());
 document.querySelector("#prepare-selected")!.addEventListener("click", () => prepare(selectedPath));
@@ -375,11 +449,7 @@ document.querySelector("#two-factor")!.addEventListener("submit", (event) => {
 });
 document.querySelector("#install-ios")!.addEventListener("click", installIos);
 document.querySelectorAll("[data-close-setup]").forEach((button) =>
-  button.addEventListener("click", () => {
-    app.classList.remove("setup-active");
-    document.querySelector<HTMLElement>("#setup")!.hidden = true;
-    document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
-  }),
+  button.addEventListener("click", closeSetup),
 );
 
 listen<TwoFactorPrompt>("apple-2fa-required", ({ payload }) => {
@@ -414,6 +484,12 @@ listen<InstallFinished>("ios-install-finished", ({ payload }) => {
   result.className = `result ${payload.success ? "good" : "bad"}`;
   result.textContent = payload.message;
   document.querySelector<HTMLButtonElement>("#install-ios")!.disabled = false;
+  if (payload.success) {
+    document.querySelectorAll<HTMLElement>("[data-stage]").forEach((item) => {
+      item.classList.remove("current");
+      item.classList.add("complete");
+    });
+  }
 });
 
 load();

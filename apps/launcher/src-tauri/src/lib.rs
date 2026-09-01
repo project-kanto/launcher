@@ -24,6 +24,7 @@ struct ServerStatus {
 #[derive(Serialize)]
 struct Dashboard {
     host: &'static str,
+    environment: &'static str,
     server: Option<ServerStatus>,
     android: Option<GameReleaseManifest>,
     ios: Option<GameReleaseManifest>,
@@ -125,6 +126,11 @@ async fn load_dashboard(app: tauri::AppHandle) -> Dashboard {
     let client = http_client(10);
     Dashboard {
         host: std::env::consts::OS,
+        environment: if API_BASE.contains("dev.kanto.ac") {
+            "development"
+        } else {
+            "production"
+        },
         server: get(&client, "/api/launcher/v1/status").await,
         android: release(&client, "android").await,
         ios: release(&client, "ios").await,
