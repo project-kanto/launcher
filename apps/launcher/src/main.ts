@@ -16,6 +16,8 @@ interface Dashboard {
   server?: { status: string; version: string };
   android?: Manifest;
   ios?: Manifest;
+  cached_android_original: boolean;
+  cached_ios_original: boolean;
   supports_32_bit_apps: boolean;
 }
 
@@ -165,7 +167,7 @@ app.innerHTML = `
           <section id="setup" class="setup" hidden aria-live="polite">
             <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
             <div class="step-heading"><h2 id="setup-title">Choose Pokémon GO</h2></div>
-            <p class="step-copy">Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.</p>
+            <p id="setup-copy" class="step-copy">Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.</p>
             <p id="source-result" class="result" role="status"></p>
             <div class="actions">
               <button id="download-original" hidden>Download Pokémon GO</button>
@@ -249,6 +251,12 @@ function manifest(platform: Platform): Manifest | undefined {
   return dashboard?.[platform];
 }
 
+function hasCachedOriginal(platform: Platform): boolean {
+  return platform === "android"
+    ? Boolean(dashboard?.cached_android_original)
+    : Boolean(dashboard?.cached_ios_original);
+}
+
 function showSetup(platform: Platform) {
   showView("library");
   activePlatform = platform;
@@ -257,11 +265,16 @@ function showSetup(platform: Platform) {
   document.querySelector("#workspace-heading")!.textContent =
     platform === "android" ? "Android" : "iPhone or iPad";
   const setup = document.querySelector<HTMLElement>("#setup")!;
-  document.querySelector("#setup-title")!.textContent = "Choose Pokémon GO";
   const source = manifest(platform)?.source_url;
+  const cached = hasCachedOriginal(platform);
+  document.querySelector("#setup-title")!.textContent = cached ? "Pokémon GO is ready" : "Choose Pokémon GO";
+  document.querySelector("#setup-copy")!.textContent = cached
+    ? "Your verified game file is saved on this device. You won’t need to choose it again."
+    : "Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.";
   const download = document.querySelector<HTMLButtonElement>("#download-original")!;
-  download.hidden = !source;
-  document.querySelector<HTMLButtonElement>("#choose-original")!.classList.toggle("secondary", Boolean(source));
+  download.hidden = !source && !cached;
+  download.textContent = cached ? "Continue" : "Download Pokémon GO";
+  document.querySelector<HTMLButtonElement>("#choose-original")!.classList.toggle("secondary", Boolean(source) || cached);
   selectedPath = undefined;
   preparedPath = undefined;
   document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
@@ -299,7 +312,11 @@ async function prepare(sourcePath?: string) {
   const buttons = document.querySelectorAll<HTMLButtonElement>("#setup button");
   buttons.forEach((button) => (button.disabled = true));
   result.className = "result checking";
-  result.textContent = sourcePath ? "Preparing Kanto…" : "Downloading and preparing Kanto…";
+  result.textContent = sourcePath
+    ? "Preparing Kanto…"
+    : hasCachedOriginal(activePlatform)
+      ? "Preparing your saved game…"
+      : "Downloading and preparing Kanto…";
   try {
     const prepared = await invoke<PreparedBuild>("prepare_release", {
       platform: activePlatform,
@@ -307,6 +324,10 @@ async function prepare(sourcePath?: string) {
     });
     result.className = "result good";
     preparedPath = prepared.path;
+    if (sourcePath && dashboard) {
+      if (activePlatform === "android") dashboard.cached_android_original = true;
+      else dashboard.cached_ios_original = true;
+    }
     if (activePlatform === "android" && dashboard?.host === "android") {
       result.textContent = `Kanto ${prepared.release_version} is ready. Tap Install Kanto to finish.`;
       document.querySelector<HTMLButtonElement>("#install-android")!.hidden = false;

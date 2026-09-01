@@ -28,6 +28,8 @@ struct Dashboard {
     server: Option<ServerStatus>,
     android: Option<GameReleaseManifest>,
     ios: Option<GameReleaseManifest>,
+    cached_android_original: bool,
+    cached_ios_original: bool,
     supports_32_bit_apps: bool,
 }
 
@@ -121,9 +123,44 @@ async fn read_local(path: PathBuf, expected: u64) -> Result<Option<Vec<u8>>, Str
     .map_err(|_| "Kanto couldn't read that file. Choose it again and retry.".to_owned())
 }
 
+fn cached_original_path(app: &tauri::AppHandle, platform: &str) -> Result<PathBuf, String> {
+    let extension = if platform == "android" { "apk" } else { "ipa" };
+    Ok(app
+        .path()
+        .app_cache_dir()
+        .map_err(|_| "Kanto couldn't open its private working folder.".to_owned())?
+        .join(format!("kanto-original.{extension}")))
+}
+
+async fn cached_original(
+    app: &tauri::AppHandle,
+    platform: &str,
+    manifest: &GameReleaseManifest,
+) -> Option<Vec<u8>> {
+    let bytes = read_local(
+        cached_original_path(app, platform).ok()?,
+        manifest.input_bytes,
+    )
+    .await
+    .ok()??;
+    (sha256(&bytes) == manifest.input_sha256).then_some(bytes)
+}
+
 #[tauri::command]
 async fn load_dashboard(app: tauri::AppHandle) -> Dashboard {
     let client = http_client(10);
+    let android = release(&client, "android").await;
+    let ios = release(&client, "ios").await;
+    let cached_android_original = if let Some(manifest) = android.as_ref() {
+        cached_original(&app, "android", manifest).await.is_some()
+    } else {
+        false
+    };
+    let cached_ios_original = if let Some(manifest) = ios.as_ref() {
+        cached_original(&app, "ios", manifest).await.is_some()
+    } else {
+        false
+    };
     Dashboard {
         host: std::env::consts::OS,
         environment: if API_BASE.contains("dev.kanto.ac") {
@@ -132,8 +169,10 @@ async fn load_dashboard(app: tauri::AppHandle) -> Dashboard {
             "production"
         },
         server: get(&client, "/api/launcher/v1/status").await,
-        android: release(&client, "android").await,
-        ios: release(&client, "ios").await,
+        android,
+        ios,
+        cached_android_original,
+        cached_ios_original,
         supports_32_bit_apps: app
             .kanto_device()
             .capabilities()
@@ -188,12 +227,20 @@ async fn prepare_release(
     let manifest = release(&client, platform)
         .await
         .ok_or_else(|| "No Kanto build is currently available for that device.".to_owned())?;
+    let extension = if platform == "android" { "apk" } else { "ipa" };
+    let directory = app
+        .path()
+        .app_cache_dir()
+        .map_err(|_| "Kanto couldn't open its private working folder.".to_owned())?;
+    let cached_path = cached_original_path(&app, platform)?;
     let source = if let Some(path) = source_path {
         read_local(path, manifest.input_bytes)
             .await?
             .ok_or_else(|| {
                 "That file won’t work with Kanto. Choose the supported Pokémon GO file.".to_owned()
             })?
+    } else if let Some(bytes) = cached_original(&app, platform, &manifest).await {
+        bytes
     } else {
         let source_url = manifest.source_url.as_deref().ok_or_else(|| {
             "Download isn’t available right now. Choose your Pokémon GO file instead.".to_owned()
@@ -209,16 +256,12 @@ async fn prepare_release(
     let delta = download(&client, &delta_url, manifest.delta_bytes).await?;
     let output = kanto_release::apply_verified(&source, &delta, &manifest)
         .map_err(|error| format!("Kanto refused the files: {error}"))?;
-    let extension = if platform == "android" { "apk" } else { "ipa" };
-    let directory = app
-        .path()
-        .app_cache_dir()
-        .map_err(|_| "Kanto couldn't open its private working folder.".to_owned())?;
     let destination = directory.join(format!("kanto-prepared.{extension}"));
     let write_path = destination.clone();
     // ponytail: this is a rebuildable cache artifact; a retry safely replaces a partial write.
     tauri::async_runtime::spawn_blocking(move || {
         std::fs::create_dir_all(&directory)?;
+        std::fs::write(cached_path, source)?;
         std::fs::write(write_path, output)
     })
     .await
