@@ -390,7 +390,7 @@ pub(crate) fn sign_and_install_ios(
 
 #[cfg(test)]
 mod tests {
-    use super::bundle_identifier;
+    use super::{bundle_identifier, devices};
 
     #[test]
     fn signing_bundle_id_only_uses_apple_safe_team_characters() {
@@ -399,5 +399,13 @@ mod tests {
             "ac.kanto.game.ab12cd"
         );
         assert!(bundle_identifier("---").is_err());
+    }
+
+    #[test]
+    #[ignore = "requires an unlocked, trusted iPhone or iPad connected by USB"]
+    fn sees_a_connected_apple_device() {
+        let connected = tauri::async_runtime::block_on(devices()).unwrap();
+        assert!(!connected.is_empty());
+        assert!(connected.iter().all(|device| !device.udid.is_empty()));
     }
 }

@@ -75,7 +75,7 @@ app.innerHTML = `
       </article>
     </section>
     <section id="setup" class="setup" hidden aria-live="polite">
-      <button id="close-setup" class="close" aria-label="Close setup">×</button>
+      <button class="close" data-close-setup aria-label="Close setup">×</button>
       <p class="eyebrow">STEP 1 OF 3</p>
       <h2 id="setup-title">Check the original game</h2>
       <p>Kanto only accepts the exact supported version. The file never leaves your device.</p>
@@ -88,6 +88,7 @@ app.innerHTML = `
       <p id="source-result" class="result" role="status"></p>
     </section>
     <section id="ios-install" class="setup" hidden>
+      <button class="close" data-close-setup aria-label="Close setup">×</button>
       <p class="eyebrow">STEPS 2–3 OF 3</p>
       <h2>Connect, sign and install</h2>
       <p>Unlock your iPhone or iPad, connect it by USB, and tap Trust if asked. Your Apple password is never saved.</p>
@@ -128,6 +129,7 @@ function manifest(platform: Platform): Manifest | undefined {
 
 function showSetup(platform: Platform) {
   activePlatform = platform;
+  app.classList.add("setup-active");
   const setup = document.querySelector<HTMLElement>("#setup")!;
   document.querySelector("#setup-title")!.textContent =
     platform === "android" ? "Check the original Android game" : "Check the original iPhone game";
@@ -141,7 +143,6 @@ function showSetup(platform: Platform) {
   document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
   document.querySelector("#source-result")!.textContent = "";
   setup.hidden = false;
-  setup.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function chooseOriginal() {
@@ -185,8 +186,8 @@ async function prepare(sourcePath?: string) {
     } else {
       result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Signing is next.`;
       await loadIosSetup();
+      document.querySelector<HTMLElement>("#setup")!.hidden = true;
       document.querySelector<HTMLElement>("#ios-install")!.hidden = false;
-      document.querySelector<HTMLElement>("#ios-install")!.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   } catch (error) {
     result.className = "result bad";
@@ -372,10 +373,13 @@ document.querySelector("#two-factor")!.addEventListener("submit", (event) => {
   respondToApple(document.querySelector<HTMLInputElement>("#apple-code")!.value);
 });
 document.querySelector("#install-ios")!.addEventListener("click", installIos);
-document.querySelector("#close-setup")!.addEventListener("click", () => {
-  document.querySelector<HTMLElement>("#setup")!.hidden = true;
-  document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
-});
+document.querySelectorAll("[data-close-setup]").forEach((button) =>
+  button.addEventListener("click", () => {
+    app.classList.remove("setup-active");
+    document.querySelector<HTMLElement>("#setup")!.hidden = true;
+    document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
+  }),
+);
 
 listen<TwoFactorPrompt>("apple-2fa-required", ({ payload }) => {
   const panel = document.querySelector<HTMLElement>("#two-factor")!;
