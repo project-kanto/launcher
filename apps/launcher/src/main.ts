@@ -164,20 +164,20 @@ app.innerHTML = `
 
           <section id="setup" class="setup" hidden aria-live="polite">
             <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
-            <div class="step-heading"><span>Step 1</span><div><p class="overline">GET READY</p><h2 id="setup-title">Choose Pokémon GO</h2></div></div>
+            <div class="step-heading"><h2 id="setup-title">Choose Pokémon GO</h2></div>
             <p class="step-copy">Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.</p>
+            <p id="source-result" class="result" role="status"></p>
             <div class="actions">
               <button id="download-original" hidden>Download Pokémon GO</button>
               <button id="choose-original" class="secondary">Choose Pokémon GO file</button>
               <button id="prepare-selected" hidden>Continue</button>
               <button id="install-android" hidden>Install Kanto</button>
             </div>
-            <p id="source-result" class="result" role="status"></p>
           </section>
 
           <section id="ios-install" class="setup install-step" hidden>
             <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
-            <div class="step-heading"><span>Step 2</span><div><p class="overline">CONNECT YOUR PHONE</p><h2>Finish on your iPhone</h2></div></div>
+            <div class="step-heading"><h2>Connect your iPhone</h2></div>
             <p class="step-copy">Unlock your iPhone, connect it with a cable, and tap Trust if asked. Your Apple password is never saved.</p>
             <div class="field-row">
               <label>Connected device<select id="ios-device"><option value="">No device found</option></select></label>
@@ -197,8 +197,8 @@ app.innerHTML = `
               <button id="submit-apple-code">Verify code</button>
               <div id="sms-options" class="actions"></div>
             </form>
-            <button id="install-ios" class="install-button" hidden>Sign and install Kanto</button>
             <p id="ios-result" class="result" role="status"></p>
+            <button id="install-ios" class="install-button" hidden>Install Kanto</button>
           </section>
         </div>
       </section>
@@ -261,6 +261,7 @@ function showSetup(platform: Platform) {
   const source = manifest(platform)?.source_url;
   const download = document.querySelector<HTMLButtonElement>("#download-original")!;
   download.hidden = !source;
+  document.querySelector<HTMLButtonElement>("#choose-original")!.classList.toggle("secondary", Boolean(source));
   selectedPath = undefined;
   preparedPath = undefined;
   document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
@@ -286,6 +287,7 @@ async function chooseOriginal() {
     result.textContent = check.message;
     selectedPath = check.valid ? path : undefined;
     document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = !check.valid;
+    document.querySelector<HTMLButtonElement>("#choose-original")!.classList.toggle("secondary", check.valid || Boolean(manifest(activePlatform)?.source_url));
   } catch (error) {
     result.className = "result bad";
     result.textContent = String(error);
