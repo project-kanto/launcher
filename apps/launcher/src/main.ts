@@ -200,13 +200,37 @@ app.innerHTML = `
               <div id="sms-options" class="actions"></div>
             </form>
             <p id="ios-result" class="result" role="status"></p>
-            <button id="install-ios" class="install-button" hidden>Install Kanto</button>
+            <div class="install-actions">
+              <button id="developer-mode-help" class="secondary">Developer Mode help</button>
+              <button id="install-ios" hidden>Install Kanto</button>
+            </div>
           </section>
         </div>
       </section>
 
       <p id="load-error" class="load-error" role="alert" hidden>Couldn’t reach Kanto. Check your connection and retry.</p>
     </main>
+
+    <dialog id="developer-mode-guide" class="guide-dialog" aria-labelledby="developer-mode-title">
+      <form method="dialog" class="guide-panel">
+        <button class="guide-close" aria-label="Close Developer Mode guide">×</button>
+        <div class="guide-heading">
+          <span>Finish on your iPhone</span>
+          <h2 id="developer-mode-title">Turn on Developer Mode</h2>
+          <p>Your iPhone may ask for this before Kanto can open. It only takes a minute.</p>
+        </div>
+        <img class="guide-image" src="/guides/developer-mode.svg" alt="">
+        <ol class="guide-steps">
+          <li><strong>Find Developer Mode</strong><span>Open Settings → Privacy &amp; Security, scroll down, then tap Developer Mode.</span></li>
+          <li><strong>Restart your iPhone</strong><span>Turn Developer Mode on, then tap Restart when your iPhone asks.</span></li>
+          <li><strong>Confirm after restart</strong><span>Unlock your iPhone, tap Enable, and enter your passcode if asked.</span></li>
+        </ol>
+        <div class="guide-footer">
+          <p>Can’t see Developer Mode? Finish installing Kanto first, keep your iPhone connected, then check again.</p>
+          <button value="done">Got it</button>
+        </div>
+      </form>
+    </dialog>
   </div>`;
 
 let dashboard: Dashboard | undefined;
@@ -334,10 +358,10 @@ async function prepare(sourcePath?: string) {
       setStage("install");
     } else {
       result.textContent = `Kanto ${prepared.release_version} is ready. Connect your iPhone to finish installing.`;
-      await loadIosSetup();
       document.querySelector<HTMLElement>("#setup")!.hidden = true;
       document.querySelector<HTMLElement>("#ios-install")!.hidden = false;
       setStage("connect");
+      await loadIosSetup();
     }
   } catch (error) {
     result.className = "result bad";
@@ -553,6 +577,9 @@ document.querySelector("#two-factor")!.addEventListener("submit", (event) => {
   respondToApple(document.querySelector<HTMLInputElement>("#apple-code")!.value);
 });
 document.querySelector("#install-ios")!.addEventListener("click", installIos);
+document.querySelector("#developer-mode-help")!.addEventListener("click", () => {
+  document.querySelector<HTMLDialogElement>("#developer-mode-guide")!.showModal();
+});
 document.querySelectorAll("[data-close-setup]").forEach((button) =>
   button.addEventListener("click", closeSetup),
 );
@@ -594,6 +621,7 @@ listen<InstallFinished>("ios-install-finished", ({ payload }) => {
       item.classList.remove("current");
       item.classList.add("complete");
     });
+    document.querySelector<HTMLDialogElement>("#developer-mode-guide")!.showModal();
   }
 });
 

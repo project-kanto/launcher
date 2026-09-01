@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" role="img" aria-labelledby="title description">
+  <title id="title">Developer Mode picture guide</title>
+  <desc id="description">Three iPhone screens showing where to find Developer Mode, how to restart, and how to enable it after restart.</desc>
+  <defs>
+    <linearGradient id="backdrop" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1d1930"/>
+      <stop offset="1" stop-color="#100e18"/>
+    </linearGradient>
+    <linearGradient id="wallpaper" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#302052"/>
+      <stop offset="0.55" stop-color="#191b3f"/>
+      <stop offset="1" stop-color="#34152f"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-20%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#030208" flood-opacity=".55"/>
+    </filter>
+    <filter id="blur"><feGaussianBlur stdDeviation="8"/></filter>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .screen-title { fill: #fff; font-size: 13px; font-weight: 700; }
+      .back { fill: #66a8ff; font-size: 8px; }
+      .label { fill: #f7f7fa; font-size: 8px; }
+      .detail { fill: #9d9da6; font-size: 6px; }
+      .section { fill: #8e8e98; font-size: 6px; letter-spacing: .08em; }
+      .alert-title { fill: #fff; font-size: 9px; font-weight: 700; }
+      .alert-copy { fill: #d1d1d7; font-size: 6.2px; }
+      .alert-action { fill: #58a6ff; font-size: 8px; font-weight: 600; }
+      .callout { fill: #fff; font-size: 10px; font-weight: 800; }
+    </style>
+  </defs>
+
+  <rect width="960" height="340" rx="18" fill="url(#backdrop)"/>
+  <path d="M0 0h320v340H0z" fill="#27213d" opacity=".18"/>
+  <path d="M640 0h320v340H640z" fill="#35192e" opacity=".12"/>
+  <path d="M320 22v296M640 22v296" stroke="#fff" stroke-opacity=".06"/>
+
+  <!-- 1: Privacy & Security -->
+  <g transform="translate(0 0)">
+    <rect x="57" y="16" width="206" height="308" rx="31" fill="#08080a" stroke="#5b5669" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="67" y="26" width="186" height="288" rx="23" fill="#000"/>
+    <rect x="128" y="31" width="64" height="15" rx="8" fill="#0d0d0f"/>
+    <text x="80" y="43" fill="#fff" font-size="6.5" font-weight="650">9:41</text>
+    <text x="76" y="65" class="back">‹ Settings</text>
+    <text x="78" y="84" class="screen-title">Privacy &amp; Security</text>
+    <rect x="76" y="94" width="168" height="84" rx="10" fill="#1c1c1e"/>
+    <g class="label">
+      <text x="88" y="113">Location Services</text><text x="234" y="113" fill="#7d7d86" text-anchor="end">On  ›</text>
+      <text x="88" y="137">Tracking</text><text x="234" y="137" fill="#7d7d86" text-anchor="end">›</text>
+      <text x="88" y="161">Safety Check</text><text x="234" y="161" fill="#7d7d86" text-anchor="end">›</text>
+    </g>
+    <path d="M87 123h146M87 147h146" stroke="#38383a" stroke-width=".7"/>
+    <text x="78" y="202" class="section">SECURITY</text>
+    <rect x="76" y="210" width="168" height="72" rx="10" fill="#1c1c1e"/>
+    <text x="88" y="231" class="label">Lockdown Mode</text><text x="234" y="231" fill="#7d7d86" font-size="8" text-anchor="end">Off  ›</text>
+    <path d="M87 244h146" stroke="#38383a" stroke-width=".7"/>
+    <rect x="80" y="248" width="160" height="29" rx="7" fill="#e51b6f" fill-opacity=".14" stroke="#f0347d" stroke-width="1.4"/>
+    <text x="88" y="267" class="label" font-weight="650">Developer Mode</text><text x="234" y="267" fill="#7d7d86" font-size="8" text-anchor="end">Off  ›</text>
+    <circle cx="249" cy="254" r="12" fill="#e51b6f"/><text x="249" y="258" class="callout" text-anchor="middle">1</text>
+  </g>
+
+  <!-- 2: Toggle and restart -->
+  <g transform="translate(320 0)">
+    <rect x="57" y="16" width="206" height="308" rx="31" fill="#08080a" stroke="#5b5669" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="67" y="26" width="186" height="288" rx="23" fill="#000"/>
+    <rect x="128" y="31" width="64" height="15" rx="8" fill="#0d0d0f"/>
+    <text x="80" y="43" fill="#fff" font-size="6.5" font-weight="650">9:41</text>
+    <text x="76" y="65" class="back">‹ Privacy &amp; Security</text>
+    <text x="160" y="88" class="screen-title" text-anchor="middle">Developer Mode</text>
+    <rect x="76" y="105" width="168" height="43" rx="10" fill="#1c1c1e"/>
+    <text x="88" y="131" class="label">Developer Mode</text>
+    <rect x="207" y="116" width="30" height="18" rx="9" fill="#35c759"/><circle cx="228" cy="125" r="7" fill="#fff"/>
+    <text x="78" y="164" class="detail">Allow apps installed for development to run.</text>
+    <rect x="67" y="26" width="186" height="288" rx="23" fill="#000" opacity=".52"/>
+    <rect x="82" y="178" width="156" height="108" rx="13" fill="#2c2c2e" fill-opacity=".96"/>
+    <text x="160" y="199" class="alert-title" text-anchor="middle">Restart Required</text>
+    <text x="160" y="215" class="alert-copy" text-anchor="middle">Your iPhone must restart to turn on</text>
+    <text x="160" y="225" class="alert-copy" text-anchor="middle">Developer Mode.</text>
+    <path d="M82 244h156M160 244v42" stroke="#505054" stroke-width=".7"/>
+    <text x="121" y="268" class="alert-action" text-anchor="middle">Not Now</text>
+    <rect x="163" y="248" width="70" height="32" rx="7" fill="#e51b6f" fill-opacity=".14" stroke="#f0347d" stroke-width="1.4"/>
+    <text x="199" y="268" class="alert-action" text-anchor="middle">Restart</text>
+    <circle cx="249" cy="254" r="12" fill="#e51b6f"/><text x="249" y="258" class="callout" text-anchor="middle">2</text>
+  </g>
+
+  <!-- 3: Confirm after reboot -->
+  <g transform="translate(640 0)">
+    <rect x="57" y="16" width="206" height="308" rx="31" fill="#08080a" stroke="#5b5669" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="67" y="26" width="186" height="288" rx="23" fill="url(#wallpaper)"/>
+    <circle cx="104" cy="90" r="66" fill="#6d3c91" opacity=".36" filter="url(#blur)"/>
+    <circle cx="218" cy="245" r="72" fill="#7d234d" opacity=".3" filter="url(#blur)"/>
+    <rect x="128" y="31" width="64" height="15" rx="8" fill="#0d0d0f"/>
+    <text x="80" y="43" fill="#fff" font-size="6.5" font-weight="650">9:43</text>
+    <text x="160" y="84" fill="#fff" font-size="28" font-weight="300" text-anchor="middle">9:43</text>
+    <text x="160" y="98" fill="#fff" fill-opacity=".7" font-size="7" text-anchor="middle">Tuesday, 1 September</text>
+    <rect x="67" y="26" width="186" height="288" rx="23" fill="#09080d" opacity=".48"/>
+    <rect x="82" y="155" width="156" height="126" rx="13" fill="#2c2c2e" fill-opacity=".96"/>
+    <text x="160" y="176" class="alert-title" text-anchor="middle">Turn On Developer Mode?</text>
+    <text x="160" y="192" class="alert-copy" text-anchor="middle">Developer Mode reduces the security</text>
+    <text x="160" y="202" class="alert-copy" text-anchor="middle">of your device. Only enable it if you</text>
+    <text x="160" y="212" class="alert-copy" text-anchor="middle">intend to run development apps.</text>
+    <path d="M82 232h156M160 232v49" stroke="#505054" stroke-width=".7"/>
+    <text x="121" y="260" class="alert-action" text-anchor="middle">Cancel</text>
+    <rect x="163" y="238" width="70" height="36" rx="7" fill="#e51b6f" fill-opacity=".14" stroke="#f0347d" stroke-width="1.4"/>
+    <text x="199" y="260" class="alert-action" text-anchor="middle">Enable</text>
+    <circle cx="249" cy="245" r="12" fill="#e51b6f"/><text x="249" y="249" class="callout" text-anchor="middle">3</text>
+  </g>
+</svg>

@@ -387,8 +387,9 @@ pub(crate) fn sign_and_install_ios(
             let finished = match result {
                 Ok(()) => InstallFinished {
                     success: true,
-                    message: "Kanto is installed. If iOS asks, enable Developer Mode or trust your Apple ID under Settings > General > VPN & Device Management, then open Kanto."
-                        .to_owned(),
+                    message:
+                        "Kanto is installed. Finish the last step on your iPhone, then open Kanto."
+                            .to_owned(),
                 },
                 Err(message) => InstallFinished {
                     success: false,
