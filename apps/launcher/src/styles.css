@@ -85,6 +85,7 @@ h1 em { color: var(--crimson); font-family: Georgia, serif; font-weight: 500; }
 .availability { color: var(--muted); font-size: 13px; font-weight: 700; }
 h2 { margin: 24px 0 8px; font-size: 27px; letter-spacing: -0.035em; }
 .device p, .setup > p:not(.eyebrow) { min-height: 48px; margin: 0 0 24px; color: var(--muted); line-height: 1.5; }
+.device .compatibility { min-height: 0; padding: 12px; border-radius: 10px; color: #7a4a00; background: #fcefcf; font-size: 14px; }
 
 button {
   min-height: 46px;

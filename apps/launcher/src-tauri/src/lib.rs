@@ -3,6 +3,7 @@ use std::{io::Read, path::PathBuf, time::Duration};
 use kanto_release::{GameReleaseManifest, sha256};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tauri::Manager;
+use tauri_plugin_kanto_device::KantoDeviceExt;
 
 const API_BASE: &str = match option_env!("KANTO_LAUNCHER_API_BASE") {
     Some(base) => base,
@@ -23,6 +24,7 @@ struct Dashboard {
     server: Option<ServerStatus>,
     android: Option<GameReleaseManifest>,
     ios: Option<GameReleaseManifest>,
+    supports_32_bit_apps: bool,
 }
 
 #[derive(Serialize)]
@@ -116,14 +118,37 @@ async fn read_local(path: PathBuf, expected: u64) -> Result<Option<Vec<u8>>, Str
 }
 
 #[tauri::command]
-async fn load_dashboard() -> Dashboard {
+async fn load_dashboard(app: tauri::AppHandle) -> Dashboard {
     let client = http_client(10);
     Dashboard {
         host: std::env::consts::OS,
         server: get(&client, "/api/launcher/v1/status").await,
         android: release(&client, "android").await,
         ios: release(&client, "ios").await,
+        supports_32_bit_apps: app
+            .kanto_device()
+            .capabilities()
+            .map(|capabilities| capabilities.supports_32_bit_apps)
+            .unwrap_or(false),
     }
+}
+
+#[tauri::command]
+fn install_prepared(
+    app: tauri::AppHandle,
+    path: PathBuf,
+) -> Result<tauri_plugin_kanto_device::InstallResponse, String> {
+    let expected = app
+        .path()
+        .app_cache_dir()
+        .map_err(|_| "Kanto couldn't open its private working folder.".to_owned())?
+        .join("kanto-prepared.apk");
+    if path != expected || !path.is_file() {
+        return Err("The prepared Android build is missing. Prepare it again.".to_owned());
+    }
+    app.kanto_device()
+        .install(tauri_plugin_kanto_device::InstallRequest { path })
+        .map_err(|_| "Kanto couldn't open the Android installer.".to_owned())
 }
 
 #[tauri::command]
@@ -200,11 +225,13 @@ async fn prepare_release(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_kanto_device::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             load_dashboard,
             verify_original,
-            prepare_release
+            prepare_release,
+            install_prepared
         ])
         .run(tauri::generate_context!())
         .expect("error while running Kanto Launcher");

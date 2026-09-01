@@ -1,0 +1,17 @@
+[package]
+name = "tauri-plugin-kanto-device"
+version = "0.1.0"
+authors = [ "Kanto contributors" ]
+description = "Native device capabilities used by Kanto Launcher"
+edition = "2024"
+license = "GPL-3.0-only"
+exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
+links = "tauri-plugin-kanto-device"
+
+[dependencies]
+tauri = { version = "2.11.5" }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2.6.3", features = ["build"] }

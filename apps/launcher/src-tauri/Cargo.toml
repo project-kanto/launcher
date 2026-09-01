@@ -22,5 +22,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 kanto-release = { path = "../../../crates/kanto-release" }
+tauri-plugin-kanto-device = { path = "../../../plugins" }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 serde = { version = "1", features = ["derive"] }

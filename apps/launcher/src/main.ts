@@ -13,6 +13,7 @@ interface Dashboard {
   server?: { status: string; version: string };
   android?: Manifest;
   ios?: Manifest;
+  supports_32_bit_apps: boolean;
 }
 
 interface SourceCheck {
@@ -23,6 +24,11 @@ interface SourceCheck {
 interface PreparedBuild {
   path: string;
   release_version: string;
+}
+
+interface InstallResponse {
+  started: boolean;
+  needs_permission: boolean;
 }
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -42,6 +48,7 @@ app.innerHTML = `
         <div><span class="platform-icon">A</span><span class="availability" id="android-version">Checking…</span></div>
         <h2>Android</h2>
         <p>Install and update directly on your phone.</p>
+        <p id="android-compatibility" class="compatibility" hidden></p>
         <button data-start="android" disabled>Set up Android</button>
       </article>
       <article class="device" data-card="ios">
@@ -60,6 +67,7 @@ app.innerHTML = `
         <button id="download-original" hidden>Download and prepare Kanto</button>
         <button id="choose-original" class="secondary">Choose original file</button>
         <button id="prepare-selected" hidden>Prepare Kanto</button>
+        <button id="install-android" hidden>Install Kanto</button>
       </div>
       <p id="source-result" class="result" role="status"></p>
     </section>
@@ -69,6 +77,7 @@ app.innerHTML = `
 let dashboard: Dashboard | undefined;
 let activePlatform: Platform = "android";
 let selectedPath: string | undefined;
+let preparedPath: string | undefined;
 
 function manifest(platform: Platform): Manifest | undefined {
   return dashboard?.[platform];
@@ -83,7 +92,9 @@ function showSetup(platform: Platform) {
   const download = document.querySelector<HTMLButtonElement>("#download-original")!;
   download.hidden = !source;
   selectedPath = undefined;
+  preparedPath = undefined;
   document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
+  document.querySelector<HTMLButtonElement>("#install-android")!.hidden = true;
   document.querySelector("#source-result")!.textContent = "";
   setup.hidden = false;
   setup.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -123,12 +134,33 @@ async function prepare(sourcePath?: string) {
       sourcePath,
     });
     result.className = "result good";
-    result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Installation is next.`;
+    preparedPath = prepared.path;
+    if (activePlatform === "android" && dashboard?.host === "android") {
+      result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Tap Install Kanto.`;
+      document.querySelector<HTMLButtonElement>("#install-android")!.hidden = false;
+    } else {
+      result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Signing is next.`;
+    }
   } catch (error) {
     result.className = "result bad";
     result.textContent = String(error);
   } finally {
     buttons.forEach((button) => (button.disabled = false));
+  }
+}
+
+async function installAndroid() {
+  if (!preparedPath) return;
+  const result = document.querySelector<HTMLElement>("#source-result")!;
+  try {
+    const install = await invoke<InstallResponse>("install_prepared", { path: preparedPath });
+    result.className = "result good";
+    result.textContent = install.needs_permission
+      ? "Allow Kanto to install apps, come back here, then tap Install Kanto again."
+      : "Android’s installer is open. Confirm Install to finish.";
+  } catch (error) {
+    result.className = "result bad";
+    result.textContent = String(error);
   }
 }
 
@@ -152,6 +184,15 @@ async function load() {
     }
     if (dashboard.host === "android") {
       document.querySelector<HTMLElement>('[data-card="ios"]')!.hidden = true;
+      if (!dashboard.supports_32_bit_apps) {
+        const compatibility = document.querySelector<HTMLElement>("#android-compatibility")!;
+        compatibility.hidden = false;
+        compatibility.textContent =
+          "This phone can’t run 32-bit apps, so Kanto won’t install here. You can try it inside a VPhone-style environment.";
+        document.querySelector<HTMLButtonElement>('[data-start="android"]')!.disabled = true;
+      }
+    } else {
+      document.querySelector<HTMLElement>('[data-card="android"]')!.hidden = true;
     }
   } catch {
     document.querySelector<HTMLElement>("#load-error")!.hidden = false;
@@ -167,6 +208,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-start]").forEach((button) =>
 document.querySelector("#choose-original")!.addEventListener("click", chooseOriginal);
 document.querySelector("#download-original")!.addEventListener("click", () => prepare());
 document.querySelector("#prepare-selected")!.addEventListener("click", () => prepare(selectedPath));
+document.querySelector("#install-android")!.addEventListener("click", installAndroid);
 document.querySelector("#close-setup")!.addEventListener("click", () => {
   document.querySelector<HTMLElement>("#setup")!.hidden = true;
 });
