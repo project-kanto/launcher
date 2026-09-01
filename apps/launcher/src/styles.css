@@ -261,7 +261,7 @@ button.quick-link { width: 100%; }
 .availability { color: var(--faint); font-size: 8px; font-weight: 750; white-space: nowrap; }
 .device-action button { min-height: 38px; }
 
-.setup { align-self: start; display: flex; flex-direction: column; width: min(780px, 100%); min-height: 340px; max-height: 100%; margin: 0; padding: 34px 36px; overflow: auto; border: 1px solid var(--line); border-radius: 20px; background: var(--panel-strong); box-shadow: inset 0 1px 0 oklch(95% 0.02 300 / 0.08), 0 20px 46px oklch(7% 0.04 295 / 0.24); backdrop-filter: blur(18px); }
+.setup { align-self: stretch; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 34px 36px; overflow: auto; border: 1px solid var(--line); border-radius: 20px; background: var(--panel-strong); box-shadow: inset 0 1px 0 oklch(95% 0.02 300 / 0.08), 0 20px 46px oklch(7% 0.04 295 / 0.24); backdrop-filter: blur(18px); }
 .setup-active .home-view { display: none; }
 .back { align-self: start; min-height: 30px; margin-bottom: 24px; padding: 0; color: var(--muted); background: transparent; font-size: 10px; }
 .back:hover:not(:disabled) { color: var(--ink); background: transparent; transform: translateX(-2px); }
@@ -329,7 +329,7 @@ input::placeholder { color: var(--faint); }
   .library-content { grid-template-rows: 54px minmax(0, 1fr); padding-bottom: 16px; }
   .game-details { padding-block: 20px; }
   .devices { margin-top: 16px; }
-  .setup { min-height: 310px; padding: 26px 28px; }
+  .setup { padding: 26px 28px; }
 }
 
 @media (max-width: 700px) {
@@ -360,7 +360,7 @@ input::placeholder { color: var(--faint); }
   .device { grid-template-columns: auto minmax(0, 1fr); }
   .device-action { grid-column: 1 / -1; grid-template-columns: 1fr auto; align-items: center; justify-items: start; width: 100%; }
   .device-action button { justify-self: end; }
-  .setup { width: auto; max-height: none; margin: 0; padding: 22px 18px; overflow: visible; }
+  .setup { width: auto; height: auto; min-height: 0; max-height: none; margin: 0; padding: 22px 18px; overflow: visible; }
   .fields, .two-factor, .field-row { grid-template-columns: 1fr; }
   .session-row { align-items: stretch; flex-direction: column; }
 }
