@@ -1,6 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { openUrl } from "@tauri-apps/plugin-opener";
 
 type Platform = "android" | "ios";
 
@@ -19,6 +18,11 @@ interface Dashboard {
 interface SourceCheck {
   valid: boolean;
   message: string;
+}
+
+interface PreparedBuild {
+  path: string;
+  release_version: string;
 }
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -53,8 +57,9 @@ app.innerHTML = `
       <h2 id="setup-title">Check the original game</h2>
       <p>Kanto only accepts the exact supported version. The file never leaves your device.</p>
       <div class="actions">
-        <button id="download-original" class="secondary" hidden>Get the original</button>
-        <button id="choose-original">Choose original file</button>
+        <button id="download-original" hidden>Download and prepare Kanto</button>
+        <button id="choose-original" class="secondary">Choose original file</button>
+        <button id="prepare-selected" hidden>Prepare Kanto</button>
       </div>
       <p id="source-result" class="result" role="status"></p>
     </section>
@@ -63,6 +68,7 @@ app.innerHTML = `
 
 let dashboard: Dashboard | undefined;
 let activePlatform: Platform = "android";
+let selectedPath: string | undefined;
 
 function manifest(platform: Platform): Manifest | undefined {
   return dashboard?.[platform];
@@ -76,7 +82,8 @@ function showSetup(platform: Platform) {
   const source = manifest(platform)?.source_url;
   const download = document.querySelector<HTMLButtonElement>("#download-original")!;
   download.hidden = !source;
-  download.dataset.url = source ?? "";
+  selectedPath = undefined;
+  document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
   document.querySelector("#source-result")!.textContent = "";
   setup.hidden = false;
   setup.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -96,9 +103,32 @@ async function chooseOriginal() {
     const check = await invoke<SourceCheck>("verify_original", { path, platform: activePlatform });
     result.className = `result ${check.valid ? "good" : "bad"}`;
     result.textContent = check.message;
+    selectedPath = check.valid ? path : undefined;
+    document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = !check.valid;
   } catch (error) {
     result.className = "result bad";
     result.textContent = String(error);
+  }
+}
+
+async function prepare(sourcePath?: string) {
+  const result = document.querySelector<HTMLElement>("#source-result")!;
+  const buttons = document.querySelectorAll<HTMLButtonElement>("#setup button");
+  buttons.forEach((button) => (button.disabled = true));
+  result.className = "result checking";
+  result.textContent = sourcePath ? "Preparing Kanto…" : "Downloading and preparing Kanto…";
+  try {
+    const prepared = await invoke<PreparedBuild>("prepare_release", {
+      platform: activePlatform,
+      sourcePath,
+    });
+    result.className = "result good";
+    result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Installation is next.`;
+  } catch (error) {
+    result.className = "result bad";
+    result.textContent = String(error);
+  } finally {
+    buttons.forEach((button) => (button.disabled = false));
   }
 }
 
@@ -135,10 +165,8 @@ document.querySelectorAll<HTMLButtonElement>("[data-start]").forEach((button) =>
   button.addEventListener("click", () => showSetup(button.dataset.start as Platform)),
 );
 document.querySelector("#choose-original")!.addEventListener("click", chooseOriginal);
-document.querySelector("#download-original")!.addEventListener("click", (event) => {
-  const url = (event.currentTarget as HTMLButtonElement).dataset.url;
-  if (url) openUrl(url);
-});
+document.querySelector("#download-original")!.addEventListener("click", () => prepare());
+document.querySelector("#prepare-selected")!.addEventListener("click", () => prepare(selectedPath));
 document.querySelector("#close-setup")!.addEventListener("click", () => {
   document.querySelector<HTMLElement>("#setup")!.hidden = true;
 });
