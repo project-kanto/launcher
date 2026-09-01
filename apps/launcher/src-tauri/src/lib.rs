@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tauri::Manager;
 use tauri_plugin_kanto_device::KantoDeviceExt;
 
+#[cfg(desktop)]
+mod ios;
+
 const API_BASE: &str = match option_env!("KANTO_LAUNCHER_API_BASE") {
     Some(base) => base,
     None => "https://kanto.ac",
@@ -224,15 +227,30 @@ async fn prepare_release(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_kanto_device::init())
-        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_dialog::init());
+    #[cfg(desktop)]
+    let builder = builder
+        .manage(ios::IosState(std::sync::Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             load_dashboard,
             verify_original,
             prepare_release,
-            install_prepared
-        ])
+            install_prepared,
+            ios::load_ios_setup,
+            ios::apple_login,
+            ios::respond_apple_2fa,
+            ios::sign_and_install_ios
+        ]);
+    #[cfg(mobile)]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        load_dashboard,
+        verify_original,
+        prepare_release,
+        install_prepared
+    ]);
+    builder
         .run(tauri::generate_context!())
         .expect("error while running Kanto Launcher");
 }

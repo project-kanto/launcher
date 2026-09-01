@@ -2,7 +2,7 @@
 
 ## Impactor
 
-The planned desktop iOS signing and device integration will pin reusable crates from
+The desktop iOS signing and device integration pins reusable crates from
 [claration/Impactor](https://github.com/claration/Impactor) rather than copy its application UI.
 
 Audited upstream revision: `79c72e9762ffc7886201e34ba0068f6fbeae5403`
@@ -12,7 +12,12 @@ Audited upstream revision: `79c72e9762ffc7886201e34ba0068f6fbeae5403`
 - bundled `omnisette`: MPL-2.0
 - bundled `decompress`: Apache-2.0
 
-The signing integration is not enabled yet. Before shipping it, retain all upstream notices, audit
-the complete resolved Cargo dependency licence set, and replace Impactor's plain-JSON account store
-with the operating system credential store.
+The integration does not use Impactor's plain-JSON account store. Apple sessions and private signing
+keys are saved through the platform credential store and certificate files exist only in a temporary
+directory while signing.
 
+Direct device access also pins [jkcoxson/idevice](https://github.com/jkcoxson/idevice) revision
+`5171e34e3a236842af1160a84d955d037ddca3af` (MIT).
+
+Before publishing release binaries, include the full upstream licence texts with each package and
+audit the complete resolved Cargo and npm dependency licence set.
