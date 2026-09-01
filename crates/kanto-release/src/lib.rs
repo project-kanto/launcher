@@ -1,11 +1,11 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 const OP_COPY: u8 = 1;
 const OP_INSERT: u8 = 2;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Platform {
     Android,
@@ -16,7 +16,7 @@ pub enum Platform {
 ///
 /// Optional fields keep current production manifests readable while the server rolls out the
 /// launcher contract. A versioned launcher manifest requires all of them during validation.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct GameReleaseManifest {
     pub platform: Platform,
     pub input_sha256: String,
@@ -35,6 +35,8 @@ pub struct GameReleaseManifest {
     pub minimum_launcher_version: Option<String>,
     #[serde(default)]
     pub delta_sha256: Option<String>,
+    #[serde(default)]
+    pub delta_url: Option<String>,
     #[serde(default)]
     pub source_url: Option<String>,
 }
@@ -94,12 +96,17 @@ impl GameReleaseManifest {
                     .as_deref()
                     .ok_or(ReleaseError::MissingField("delta_sha256"))?;
                 validate_digest("delta_sha256", delta_sha)?;
-                let source_url = self
-                    .source_url
-                    .as_deref()
-                    .ok_or(ReleaseError::MissingField("source_url"))?;
-                if !source_url.starts_with("https://") {
-                    return Err(ReleaseError::InsecureSourceUrl);
+                required("delta_url", self.delta_url.as_deref())?;
+                if let Some(source_url) = self.source_url.as_deref() {
+                    let parsed =
+                        url::Url::parse(source_url).map_err(|_| ReleaseError::InsecureSourceUrl)?;
+                    if parsed.scheme() != "https"
+                        || parsed.host_str().is_none()
+                        || !parsed.username().is_empty()
+                        || parsed.password().is_some()
+                    {
+                        return Err(ReleaseError::InsecureSourceUrl);
+                    }
                 }
                 Ok(())
             }
@@ -125,13 +132,23 @@ pub fn apply_verified(
         verify_digest("delta", delta, expected)?;
     }
 
-    let output = apply_delta(source, delta)?;
+    let max_output =
+        usize::try_from(manifest.output_bytes).map_err(|_| ReleaseError::OutputTooLarge)?;
+    let output = apply_delta_with_limit(source, delta, max_output)?;
     verify_size("output", &output, manifest.output_bytes)?;
     verify_digest("output", &output, &manifest.output_sha256)?;
     Ok(output)
 }
 
 pub fn apply_delta(source: &[u8], delta: &[u8]) -> Result<Vec<u8>, ReleaseError> {
+    apply_delta_with_limit(source, delta, usize::MAX)
+}
+
+fn apply_delta_with_limit(
+    source: &[u8],
+    delta: &[u8],
+    max_output: usize,
+) -> Result<Vec<u8>, ReleaseError> {
     let mut output = Vec::new();
     let mut cursor = 0usize;
 
@@ -152,6 +169,13 @@ pub fn apply_delta(source: &[u8], delta: &[u8]) -> Result<Vec<u8>, ReleaseError>
                     .checked_add(length_usize)
                     .filter(|end| *end <= source.len())
                     .ok_or(ReleaseError::CopyOutOfRange { offset, length })?;
+                if output
+                    .len()
+                    .checked_add(length_usize)
+                    .is_none_or(|size| size > max_output)
+                {
+                    return Err(ReleaseError::OutputTooLarge);
+                }
                 output
                     .try_reserve(length_usize)
                     .map_err(|_| ReleaseError::OutputTooLarge)?;
@@ -168,6 +192,13 @@ pub fn apply_delta(source: &[u8], delta: &[u8]) -> Result<Vec<u8>, ReleaseError>
                         operation: "insert",
                         offset: operation_offset,
                     })?;
+                if output
+                    .len()
+                    .checked_add(length_usize)
+                    .is_none_or(|size| size > max_output)
+                {
+                    return Err(ReleaseError::OutputTooLarge);
+                }
                 output
                     .try_reserve(length_usize)
                     .map_err(|_| ReleaseError::OutputTooLarge)?;
@@ -288,6 +319,7 @@ mod tests {
             published_at: Some("2026-09-01T00:00:00Z".into()),
             minimum_launcher_version: Some("0.1.0".into()),
             delta_sha256: Some(sha256(delta)),
+            delta_url: Some("/api/launcher/v1/game/ios/delta".into()),
             source_url: Some("https://archive.example/client.ipa".into()),
         }
     }
@@ -340,6 +372,43 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn refuses_output_larger_than_the_manifest() {
+        let source = b"source";
+        let delta = insert(b"too large");
+        let mut release = manifest(source, &delta, b"too large");
+        release.output_bytes = 1;
+
+        assert_eq!(
+            apply_verified(source, &delta, &release),
+            Err(ReleaseError::OutputTooLarge)
+        );
+    }
+
+    #[test]
+    fn accepts_manual_source_fallback() {
+        let source = b"source";
+        let delta = insert(b"output");
+        let mut release = manifest(source, &delta, b"output");
+        release.source_url = None;
+
+        assert_eq!(release.validate(), Ok(()));
+    }
+
+    #[test]
+    fn refuses_unsafe_source_urls() {
+        let source = b"source";
+        let delta = insert(b"output");
+        for source_url in [
+            "http://example.com/game.ipa",
+            "https://user:pass@example.com/game.ipa",
+        ] {
+            let mut release = manifest(source, &delta, b"output");
+            release.source_url = Some(source_url.into());
+            assert_eq!(release.validate(), Err(ReleaseError::InsecureSourceUrl));
+        }
     }
 
     #[test]
