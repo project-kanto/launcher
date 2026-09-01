@@ -18,18 +18,19 @@ Grounded, playful, competent. The voice is friendly and direct without sounding 
 
 ## Anti-references
 
-- Marketing-site heroes transplanted into an app window.
 - PowerPoint-like stacks of large cards and explanatory copy.
-- Generic AI-generated SaaS layouts, glass panels, gradient decoration, and oversized slogans.
-- Dense gamer launchers full of news feeds, promotions, or ornamental telemetry.
+- Generic AI-generated SaaS layouts and oversized slogans.
+- Glass and gradients applied to every surface without hierarchy.
+- Dense gamer launchers full of promotions or ornamental telemetry.
 - Wizard screens that hide current status or make users remember earlier steps.
 
 ## Design Principles
 
-- Open on the task, not a pitch: show the detected platform, current release, and one useful action.
+- Make the launcher feel alive: Home carries news, server status and community links; Library owns installation and updates.
+- Use a soft atmospheric shell with restrained translucent depth, keeping the strongest contrast on useful actions.
 - Keep the journey visible: players should always know what is ready, what is happening, and what they need to do next.
 - Preserve confidence: verify before modifying, explain failures plainly, and keep safe recovery actions beside the problem.
-- Use Kanto's identity, not the website's landing-page layout: borrow the mark, palette, type character, and warmth inside a compact utility shell.
+- Give Kanto its own launcher identity instead of reproducing the website layout.
 - Keep support friction low: progressive disclosure for Apple credentials, verification, device limits, and compatibility guidance.
 
 ## Accessibility & Inclusion

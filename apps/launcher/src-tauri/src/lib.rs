@@ -238,6 +238,7 @@ pub fn run() {
         .install_default()
         .expect("the TLS provider is only installed once at startup");
     let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_kanto_device::init())
         .plugin(tauri_plugin_dialog::init());
     #[cfg(desktop)]

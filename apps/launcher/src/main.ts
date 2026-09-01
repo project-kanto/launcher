@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 type Platform = "android" | "ios";
 
@@ -51,106 +52,164 @@ interface InstallFinished {
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
   <div class="shell">
-    <aside class="sidebar">
-      <a class="brand" href="#" aria-label="Kanto Launcher home">
+    <aside class="rail">
+      <button class="brand" data-view="home" aria-label="Kanto Launcher home">
         <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
           <path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/>
           <path class="mark-fold" d="M32 23l-9 9v-9z"/>
           <g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g>
         </svg>
-        <span><strong>Kanto</strong><small>Launcher</small></span>
-      </a>
+      </button>
 
-      <div class="client-summary">
-        <span class="client-icon" aria-hidden="true">K</span>
-        <div><small>Game client</small><strong id="sidebar-version">Checking…</strong></div>
-      </div>
+      <nav class="primary-nav" aria-label="Launcher">
+        <button class="nav-item active" data-view="home" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></svg>
+          <span>Home</span>
+        </button>
+        <button class="nav-item" data-view="library">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M10 4v16M15 6l4-1v14l-4 1z"/></svg>
+          <span>Library</span>
+        </button>
+      </nav>
 
-      <ol class="journey" aria-label="Installation progress">
-        <li data-stage="prepare" class="current"><span>1</span><div><strong>Prepare</strong><small>Verify and patch</small></div></li>
-        <li data-stage="connect"><span>2</span><div><strong>Connect</strong><small>Phone and account</small></div></li>
-        <li data-stage="install"><span>3</span><div><strong>Install</strong><small>Sign and finish</small></div></li>
-      </ol>
-
-      <div class="sidebar-footer">
-        <span id="environment" class="environment">Local build</span>
-        <div id="server-status" class="status status-loading" role="status"><span></span>Checking servers</div>
+      <div class="rail-footer">
+        <span id="environment" class="environment">Local</span>
+        <span class="rail-version" id="rail-version">…</span>
       </div>
     </aside>
 
-    <main class="workspace">
-      <header class="workspace-bar">
-        <div><span>Installer</span><strong id="workspace-heading">Kanto setup</strong></div>
-        <span class="secure-note">Verified locally</span>
-      </header>
+    <main class="stage">
+      <section class="page home-page" data-page="home">
+        <header class="page-bar">
+          <div><span>Welcome back</span><strong>Kanto Launcher</strong></div>
+          <div id="server-status" class="status-pill status-loading" role="status"><span></span>Checking Kanto</div>
+        </header>
 
-      <section class="home-view">
-        <div class="home-main">
-          <p class="overline">READY TO INSTALL</p>
-          <h1>Kanto for your phone</h1>
-          <p class="intro">Choose the device you’re setting up. Kanto will prepare the correct game build and guide the rest.</p>
+        <div class="home-content">
+          <section class="home-hero">
+            <div class="hero-copy">
+              <span class="eyebrow">THE PRESERVED 2016 WORLD</span>
+              <h1>Adventure,<br>the way you remember it.</h1>
+              <p>Kanto brings the original mobile adventure back online, with a growing world and a launcher that handles the fiddly bits.</p>
+              <button class="hero-action" data-view="library">Open library <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="hero-scene" aria-hidden="true">
+              <span class="orbit orbit-one"></span>
+              <span class="orbit orbit-two"></span>
+              <span class="planet"></span>
+              <span class="hero-mark">
+                <svg viewBox="0 0 32 32"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
+              </span>
+            </div>
+          </section>
 
-          <div class="devices" aria-label="Choose your phone">
-            <article class="device" data-card="android">
-              <span class="platform-icon">Android</span>
-              <div class="device-copy"><h2>Android phone</h2><p>Prepare and install directly on this device.</p><p id="android-compatibility" class="compatibility" hidden></p></div>
-              <div class="device-action"><span class="availability" id="android-version">Checking…</span><button data-start="android" disabled>Set up</button></div>
-            </article>
-            <article class="device" data-card="ios">
-              <span class="platform-icon">iOS</span>
-              <div class="device-copy"><h2>iPhone or iPad</h2><p>Connect by USB, then Kanto signs and installs it.</p></div>
-              <div class="device-action"><span class="availability" id="ios-version">Checking…</span><button data-start="ios" disabled>Set up</button></div>
-            </article>
+          <div class="home-lower">
+            <div class="quick-links">
+              <button class="quick-link server-link" data-view="library">
+                <span class="quick-icon"><span class="live-dot"></span></span>
+                <span><small>Game server</small><strong id="home-server-label">Checking status…</strong></span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <a class="quick-link support-link" href="https://kanto.ac/support" target="_blank" rel="noopener noreferrer external">
+                <span class="quick-icon">♥</span>
+                <span><small>Keep Kanto running</small><strong>Support the project</strong></span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+
+            <section class="news" aria-labelledby="news-heading">
+              <div class="section-heading"><span>Latest news</span><a href="https://kanto.ac/community" target="_blank" rel="noopener noreferrer external">Community ↗</a></div>
+              <a class="news-lead" href="https://kanto.ac/community" target="_blank" rel="noopener noreferrer external">
+                <div><span>Current release</span><strong id="news-version">Kanto is checking for updates</strong><small>The latest game build and server status, together in one place.</small></div>
+                <span aria-hidden="true">→</span>
+              </a>
+              <div class="news-row"><span>Launcher preview</span><strong>A simpler route from download to your phone</strong><small>Now</small></div>
+            </section>
           </div>
         </div>
-
-        <aside class="release-info" aria-label="What Kanto Launcher does">
-          <p class="overline">THIS INSTALL</p>
-          <ul>
-            <li><span>01</span><div><strong>Original verified</strong><small>Wrong files are refused before anything changes.</small></div></li>
-            <li><span>02</span><div><strong>Patched on-device</strong><small>Your original game file stays on this computer.</small></div></li>
-            <li><span>03</span><div><strong>Guided install</strong><small>Every phone confirmation is explained as it appears.</small></div></li>
-          </ul>
-        </aside>
       </section>
 
-      <section id="setup" class="setup" hidden aria-live="polite">
-        <button class="back" data-close-setup aria-label="Back to device selection">← Back</button>
-        <div class="step-heading"><span>1</span><div><p class="overline">PREPARE</p><h2 id="setup-title">Check the original game</h2></div></div>
-        <p class="step-copy">Kanto only accepts the exact supported version. The file is checked and patched locally.</p>
-        <div class="actions">
-          <button id="download-original" hidden>Download and prepare</button>
-          <button id="choose-original" class="secondary">Choose original file</button>
-          <button id="prepare-selected" hidden>Prepare Kanto</button>
-          <button id="install-android" hidden>Install Kanto</button>
-        </div>
-        <p id="source-result" class="result" role="status"></p>
-      </section>
+      <section class="page library-page" data-page="library" hidden>
+        <header class="page-bar library-bar">
+          <div><span>Your library</span><strong id="workspace-heading">Kanto</strong></div>
+          <span class="secure-note">Verified locally</span>
+        </header>
 
-      <section id="ios-install" class="setup install-step" hidden>
-        <button class="back" data-close-setup aria-label="Back to device selection">← Back</button>
-        <div class="step-heading"><span>2</span><div><p class="overline">CONNECT &amp; INSTALL</p><h2>Finish on your iPhone</h2></div></div>
-        <p class="step-copy">Unlock your device, connect it by USB, and tap Trust if asked. Your Apple password is never saved.</p>
-        <div class="field-row">
-          <label>Connected device<select id="ios-device"><option value="">No device found</option></select></label>
-          <button id="refresh-ios" class="secondary">Refresh</button>
+        <div class="library-content">
+          <ol class="journey" aria-label="Installation progress">
+            <li data-stage="prepare" class="current"><span>1</span><div><strong>Prepare</strong><small>Verify and patch</small></div></li>
+            <li data-stage="connect"><span>2</span><div><strong>Connect</strong><small>Phone and account</small></div></li>
+            <li data-stage="install"><span>3</span><div><strong>Install</strong><small>Sign and finish</small></div></li>
+          </ol>
+
+          <section class="home-view">
+            <div class="game-cover" aria-hidden="true">
+              <span class="cover-ring"></span>
+              <svg viewBox="0 0 32 32"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
+              <small>CLASSIC MOBILE ADVENTURE</small>
+            </div>
+
+            <div class="game-details">
+              <p class="overline">IN YOUR LIBRARY</p>
+              <h1>Kanto</h1>
+              <p class="intro">Pokémon GO 0.35.0, prepared safely for the Kanto server.</p>
+
+              <div class="devices" aria-label="Choose your phone">
+                <article class="device" data-card="android">
+                  <span class="platform-icon">Android</span>
+                  <div class="device-copy"><h2>Android phone</h2><p>Prepare and install directly on this device.</p><p id="android-compatibility" class="compatibility" hidden></p></div>
+                  <div class="device-action"><span class="availability" id="android-version">Checking…</span><button data-start="android" disabled>Install</button></div>
+                </article>
+                <article class="device" data-card="ios">
+                  <span class="platform-icon">iOS</span>
+                  <div class="device-copy"><h2>iPhone or iPad</h2><p>Connect by USB, then Kanto signs and installs it.</p></div>
+                  <div class="device-action"><span class="availability" id="ios-version">Checking…</span><button data-start="ios" disabled>Install</button></div>
+                </article>
+              </div>
+
+              <div class="library-meta"><span><small>Original</small><strong>0.35.0</strong></span><span><small>Kanto</small><strong id="sidebar-version">Checking…</strong></span><span><small>Protection</small><strong>Local verification</strong></span></div>
+            </div>
+          </section>
+
+          <section id="setup" class="setup" hidden aria-live="polite">
+            <button class="back" data-close-setup aria-label="Back to library">← Library</button>
+            <div class="step-heading"><span>1</span><div><p class="overline">PREPARE</p><h2 id="setup-title">Check the original game</h2></div></div>
+            <p class="step-copy">Kanto only accepts the exact supported version. The file is checked and patched locally.</p>
+            <div class="actions">
+              <button id="download-original" hidden>Download and prepare</button>
+              <button id="choose-original" class="secondary">Choose original file</button>
+              <button id="prepare-selected" hidden>Prepare Kanto</button>
+              <button id="install-android" hidden>Install Kanto</button>
+            </div>
+            <p id="source-result" class="result" role="status"></p>
+          </section>
+
+          <section id="ios-install" class="setup install-step" hidden>
+            <button class="back" data-close-setup aria-label="Back to library">← Library</button>
+            <div class="step-heading"><span>2</span><div><p class="overline">CONNECT &amp; INSTALL</p><h2>Finish on your iPhone</h2></div></div>
+            <p class="step-copy">Unlock your device, connect it by USB, and tap Trust if asked. Your Apple password is never saved.</p>
+            <div class="field-row">
+              <label>Connected device<select id="ios-device"><option value="">No device found</option></select></label>
+              <button id="refresh-ios" class="secondary">Refresh</button>
+            </div>
+            <form id="apple-login-fields" class="fields">
+              <label>Apple ID<input id="apple-email" type="email" autocomplete="username" placeholder="you@example.com" required></label>
+              <label>Password<input id="apple-password" type="password" autocomplete="current-password" required></label>
+              <button id="apple-login">Sign in securely</button>
+            </form>
+            <div id="apple-session-row" class="session-row" hidden>
+              <p id="apple-session" class="signed-in"></p>
+              <button id="change-apple-id" class="secondary">Change</button>
+            </div>
+            <form id="two-factor" class="two-factor" hidden>
+              <label>Apple verification code<input id="apple-code" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required></label>
+              <button id="submit-apple-code">Verify code</button>
+              <div id="sms-options" class="actions"></div>
+            </form>
+            <button id="install-ios" class="install-button" hidden>Sign and install Kanto</button>
+            <p id="ios-result" class="result" role="status"></p>
+          </section>
         </div>
-        <form id="apple-login-fields" class="fields">
-          <label>Apple ID<input id="apple-email" type="email" autocomplete="username" placeholder="you@example.com" required></label>
-          <label>Password<input id="apple-password" type="password" autocomplete="current-password" required></label>
-          <button id="apple-login">Sign in securely</button>
-        </form>
-        <div id="apple-session-row" class="session-row" hidden>
-          <p id="apple-session" class="signed-in"></p>
-          <button id="change-apple-id" class="secondary">Change</button>
-        </div>
-        <form id="two-factor" class="two-factor" hidden>
-          <label>Apple verification code<input id="apple-code" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" required></label>
-          <button id="submit-apple-code">Verify code</button>
-          <div id="sms-options" class="actions"></div>
-        </form>
-        <button id="install-ios" class="install-button" hidden>Sign and install Kanto</button>
-        <p id="ios-result" class="result" role="status"></p>
       </section>
 
       <p id="load-error" class="load-error" role="alert" hidden>Couldn’t reach Kanto. Check your connection and retry.</p>
@@ -163,6 +222,19 @@ let selectedPath: string | undefined;
 let preparedPath: string | undefined;
 
 type Stage = "prepare" | "connect" | "install";
+
+function showView(view: "home" | "library") {
+  document.querySelectorAll<HTMLElement>("[data-page]").forEach((page) => {
+    page.hidden = page.dataset.page !== view;
+  });
+  document.querySelectorAll<HTMLButtonElement>(".nav-item").forEach((item) => {
+    const active = item.dataset.view === view;
+    item.classList.toggle("active", active);
+    if (active) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  });
+  if (view === "library") closeSetup();
+}
 
 function setStage(stage: Stage) {
   const stages: Stage[] = ["prepare", "connect", "install"];
@@ -178,7 +250,7 @@ function closeSetup() {
   app.classList.remove("setup-active");
   document.querySelector<HTMLElement>("#setup")!.hidden = true;
   document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
-  document.querySelector("#workspace-heading")!.textContent = "Kanto setup";
+  document.querySelector("#workspace-heading")!.textContent = "Kanto";
   setStage("prepare");
 }
 
@@ -187,6 +259,7 @@ function manifest(platform: Platform): Manifest | undefined {
 }
 
 function showSetup(platform: Platform) {
+  showView("library");
   activePlatform = platform;
   app.classList.add("setup-active");
   setStage("prepare");
@@ -382,17 +455,24 @@ async function load() {
   try {
     dashboard = await invoke<Dashboard>("load_dashboard");
     document.querySelector("#environment")!.textContent =
-      dashboard.environment === "development" ? "Development build" : "Production";
+      dashboard.environment === "development" ? "DEV" : "LIVE";
     document.querySelector("#environment")!.className = `environment environment-${dashboard.environment}`;
     document.querySelector("#sidebar-version")!.textContent =
       dashboard.server ? `Kanto ${dashboard.server.version}` : "Unavailable";
+    document.querySelector("#rail-version")!.textContent =
+      dashboard.server ? `v${dashboard.server.version}` : "Offline";
+    document.querySelector("#news-version")!.textContent = dashboard.server
+      ? `Kanto ${dashboard.server.version} is ready`
+      : "Kanto is currently unavailable";
     const status = document.querySelector<HTMLElement>("#server-status")!;
     const reported = dashboard.server?.status ?? "offline";
     const state = ["online", "degraded", "maintenance", "offline"].includes(reported)
       ? reported
       : "offline";
-    status.className = `status status-${state}`;
+    status.className = `status-pill status-${state}`;
     status.replaceChildren(document.createElement("span"), `${state[0].toUpperCase()}${state.slice(1)}`);
+    document.querySelector("#home-server-label")!.textContent =
+      state === "online" ? `Online · Kanto ${dashboard.server?.version ?? ""}` : `${state[0].toUpperCase()}${state.slice(1)}`;
 
     for (const platform of ["android", "ios"] as const) {
       const release = dashboard[platform];
@@ -416,18 +496,32 @@ async function load() {
   } catch {
     document.querySelector<HTMLElement>("#load-error")!.hidden = false;
     const status = document.querySelector<HTMLElement>("#server-status")!;
-    status.className = "status status-offline";
+    status.className = "status-pill status-offline";
     status.replaceChildren(document.createElement("span"), "Offline");
+    document.querySelector("#home-server-label")!.textContent = "Server unavailable";
   }
 }
 
+document.querySelectorAll<HTMLElement>("[data-view]").forEach((item) =>
+  item.addEventListener("click", (event) => {
+    if (item instanceof HTMLAnchorElement) return;
+    event.preventDefault();
+    showView(item.dataset.view as "home" | "library");
+  }),
+);
+document.querySelectorAll<HTMLAnchorElement>('a[href^="https://kanto.ac/"]').forEach((link) =>
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    openUrl(link.href).catch(() => {
+      const error = document.querySelector<HTMLElement>("#load-error")!;
+      error.textContent = "Couldn’t open that Kanto page in your browser.";
+      error.hidden = false;
+    });
+  }),
+);
 document.querySelectorAll<HTMLButtonElement>("[data-start]").forEach((button) =>
   button.addEventListener("click", () => showSetup(button.dataset.start as Platform)),
 );
-document.querySelector(".brand")!.addEventListener("click", (event) => {
-  event.preventDefault();
-  closeSetup();
-});
 document.querySelector("#choose-original")!.addEventListener("click", chooseOriginal);
 document.querySelector("#download-original")!.addEventListener("click", () => prepare());
 document.querySelector("#prepare-selected")!.addEventListener("click", () => prepare(selectedPath));

@@ -25,6 +25,7 @@ kanto-release = { path = "../../../crates/kanto-release" }
 tauri-plugin-kanto-device = { path = "../../../plugins" }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 serde = { version = "1", features = ["derive"] }
+tauri-plugin-opener = "2"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 futures = { version = "0.3", default-features = false, features = ["std"] }
