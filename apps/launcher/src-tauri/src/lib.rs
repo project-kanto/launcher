@@ -171,9 +171,9 @@ async fn verify_original(path: PathBuf, platform: &str) -> Result<SourceCheck, S
     Ok(SourceCheck {
         valid,
         message: if valid {
-            "Original game verified."
+            "That’s the right file. You can continue."
         } else {
-            "That isn't the supported Pokémon GO 0.35.0 file."
+            "That file won’t work with Kanto. Choose the supported Pokémon GO file."
         },
     })
 }
@@ -191,11 +191,12 @@ async fn prepare_release(
     let source = if let Some(path) = source_path {
         read_local(path, manifest.input_bytes)
             .await?
-            .ok_or_else(|| "That isn't the supported Pokémon GO 0.35.0 file.".to_owned())?
+            .ok_or_else(|| {
+                "That file won’t work with Kanto. Choose the supported Pokémon GO file.".to_owned()
+            })?
     } else {
         let source_url = manifest.source_url.as_deref().ok_or_else(|| {
-            "Automatic download isn't available for this build. Choose the original file instead."
-                .to_owned()
+            "Download isn’t available right now. Choose your Pokémon GO file instead.".to_owned()
         })?;
         download(&client, source_url, manifest.input_bytes).await?
     };

@@ -67,8 +67,8 @@ app.innerHTML = `
           <span>Home</span>
         </button>
         <button class="nav-item" data-view="library">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M10 4v16M15 6l4-1v14l-4 1z"/></svg>
-          <span>Library</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>
+          <span>Play</span>
         </button>
       </nav>
 
@@ -91,7 +91,7 @@ app.innerHTML = `
               <span class="eyebrow">THE PRESERVED 2016 WORLD</span>
               <h1>Adventure,<br>the way you remember it.</h1>
               <p>Kanto brings the original mobile adventure back online, with a growing world and a launcher that handles the fiddly bits.</p>
-              <button class="hero-action" data-view="library">Open library <span aria-hidden="true">→</span></button>
+              <button class="hero-action" data-view="library">Play Kanto <span aria-hidden="true">→</span></button>
             </div>
             <div class="hero-scene" aria-hidden="true">
               <span class="orbit orbit-one"></span>
@@ -131,63 +131,54 @@ app.innerHTML = `
 
       <section class="page library-page" data-page="library" hidden>
         <header class="page-bar library-bar">
-          <div><span>Your library</span><strong id="workspace-heading">Kanto</strong></div>
-          <span class="secure-note">Verified locally</span>
+          <div><span>Play</span><strong id="workspace-heading">Kanto</strong></div>
         </header>
 
         <div class="library-content">
           <ol class="journey" aria-label="Installation progress">
-            <li data-stage="prepare" class="current"><span>1</span><div><strong>Prepare</strong><small>Verify and patch</small></div></li>
-            <li data-stage="connect"><span>2</span><div><strong>Connect</strong><small>Phone and account</small></div></li>
-            <li data-stage="install"><span>3</span><div><strong>Install</strong><small>Sign and finish</small></div></li>
+            <li data-stage="prepare" class="current"><span>1</span><div><strong>Get ready</strong><small>Choose your game</small></div></li>
+            <li data-stage="connect"><span>2</span><div><strong>Connect</strong><small>Connect your phone</small></div></li>
+            <li data-stage="install"><span>3</span><div><strong>Install</strong><small>Finish setup</small></div></li>
           </ol>
 
           <section class="home-view">
-            <div class="game-cover" aria-hidden="true">
-              <span class="cover-ring"></span>
-              <svg viewBox="0 0 32 32"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
-              <div class="cover-caption"><strong>Kanto</strong><small>Classic mobile adventure</small></div>
-            </div>
-
             <div class="game-details">
-              <p class="overline">IN YOUR LIBRARY</p>
-              <h1>Kanto</h1>
-              <p class="intro">Pokémon GO 0.35.0, prepared safely for the Kanto server.</p>
+              <p class="overline">PLAY KANTO</p>
+              <h1>Choose your phone</h1>
+              <p class="intro">We’ll guide you through installing Kanto from start to finish.</p>
 
               <div class="devices" aria-label="Choose your phone">
                 <article class="device" data-card="android">
                   <span class="platform-icon">Android</span>
-                  <div class="device-copy"><h2>Android phone</h2><p>Prepare and install directly on this device.</p><p id="android-compatibility" class="compatibility" hidden></p></div>
+                  <div class="device-copy"><h2>Android phone</h2><p>Install Kanto directly on your phone.</p><p id="android-compatibility" class="compatibility" hidden></p></div>
                   <div class="device-action"><span class="availability" id="android-version">Checking…</span><button data-start="android" disabled>Install</button></div>
                 </article>
                 <article class="device" data-card="ios">
                   <span class="platform-icon">iOS</span>
-                  <div class="device-copy"><h2>iPhone or iPad</h2><p>Connect by USB, then Kanto signs and installs it.</p></div>
+                  <div class="device-copy"><h2>iPhone or iPad</h2><p>Connect your device with a cable. We’ll handle the rest.</p></div>
                   <div class="device-action"><span class="availability" id="ios-version">Checking…</span><button data-start="ios" disabled>Install</button></div>
                 </article>
               </div>
-
-              <div class="library-meta"><span><small>Original</small><strong>0.35.0</strong></span><span><small>Kanto</small><strong id="sidebar-version">Checking…</strong></span><span><small>Protection</small><strong>Local verification</strong></span></div>
             </div>
           </section>
 
           <section id="setup" class="setup" hidden aria-live="polite">
-            <button class="back" data-close-setup aria-label="Back to library">← Library</button>
-            <div class="step-heading"><span>1</span><div><p class="overline">PREPARE</p><h2 id="setup-title">Check the original game</h2></div></div>
-            <p class="step-copy">Kanto only accepts the exact supported version. The file is checked and patched locally.</p>
+            <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
+            <div class="step-heading"><span>1</span><div><p class="overline">GET READY</p><h2 id="setup-title">Choose Pokémon GO</h2></div></div>
+            <p class="step-copy">Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.</p>
             <div class="actions">
-              <button id="download-original" hidden>Download and prepare</button>
-              <button id="choose-original" class="secondary">Choose original file</button>
-              <button id="prepare-selected" hidden>Prepare Kanto</button>
+              <button id="download-original" hidden>Download Pokémon GO</button>
+              <button id="choose-original" class="secondary">Choose Pokémon GO file</button>
+              <button id="prepare-selected" hidden>Continue</button>
               <button id="install-android" hidden>Install Kanto</button>
             </div>
             <p id="source-result" class="result" role="status"></p>
           </section>
 
           <section id="ios-install" class="setup install-step" hidden>
-            <button class="back" data-close-setup aria-label="Back to library">← Library</button>
-            <div class="step-heading"><span>2</span><div><p class="overline">CONNECT &amp; INSTALL</p><h2>Finish on your iPhone</h2></div></div>
-            <p class="step-copy">Unlock your device, connect it by USB, and tap Trust if asked. Your Apple password is never saved.</p>
+            <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
+            <div class="step-heading"><span>2</span><div><p class="overline">CONNECT YOUR PHONE</p><h2>Finish on your iPhone</h2></div></div>
+            <p class="step-copy">Unlock your iPhone, connect it with a cable, and tap Trust if asked. Your Apple password is never saved.</p>
             <div class="field-row">
               <label>Connected device<select id="ios-device"><option value="">No device found</option></select></label>
               <button id="refresh-ios" class="secondary">Refresh</button>
@@ -264,10 +255,9 @@ function showSetup(platform: Platform) {
   app.classList.add("setup-active");
   setStage("prepare");
   document.querySelector("#workspace-heading")!.textContent =
-    platform === "android" ? "Android setup" : "iPhone setup";
+    platform === "android" ? "Android" : "iPhone or iPad";
   const setup = document.querySelector<HTMLElement>("#setup")!;
-  document.querySelector("#setup-title")!.textContent =
-    platform === "android" ? "Check the original Android game" : "Check the original iPhone game";
+  document.querySelector("#setup-title")!.textContent = "Choose Pokémon GO";
   const source = manifest(platform)?.source_url;
   const download = document.querySelector<HTMLButtonElement>("#download-original")!;
   download.hidden = !source;
@@ -316,11 +306,11 @@ async function prepare(sourcePath?: string) {
     result.className = "result good";
     preparedPath = prepared.path;
     if (activePlatform === "android" && dashboard?.host === "android") {
-      result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Tap Install Kanto.`;
+      result.textContent = `Kanto ${prepared.release_version} is ready. Tap Install Kanto to finish.`;
       document.querySelector<HTMLButtonElement>("#install-android")!.hidden = false;
       setStage("install");
     } else {
-      result.textContent = `Kanto ${prepared.release_version} is prepared and verified. Signing is next.`;
+      result.textContent = `Kanto ${prepared.release_version} is ready. Connect your iPhone to finish installing.`;
       await loadIosSetup();
       document.querySelector<HTMLElement>("#setup")!.hidden = true;
       document.querySelector<HTMLElement>("#ios-install")!.hidden = false;
@@ -457,8 +447,6 @@ async function load() {
     document.querySelector("#environment")!.textContent =
       dashboard.environment === "development" ? "DEV" : "LIVE";
     document.querySelector("#environment")!.className = `environment environment-${dashboard.environment}`;
-    document.querySelector("#sidebar-version")!.textContent =
-      dashboard.server ? `Kanto ${dashboard.server.version}` : "Unavailable";
     document.querySelector("#rail-version")!.textContent =
       dashboard.server ? `v${dashboard.server.version}` : "Offline";
     document.querySelector("#news-version")!.textContent = dashboard.server
