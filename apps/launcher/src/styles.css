@@ -92,14 +92,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   height: 54px;
   min-height: 54px;
   padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 17px;
-  background: oklch(92% 0.03 300 / 0.08);
-  box-shadow: inset 0 1px 0 oklch(96% 0.02 300 / 0.12), 0 12px 34px oklch(7% 0.04 290 / 0.3);
+  background: transparent;
 }
 
-.brand:hover:not(:disabled) { background: oklch(92% 0.03 300 / 0.13); }
-.brand-mark { width: 32px; height: 32px; }
+.brand:hover:not(:disabled) { background: transparent; transform: scale(1.04); }
+.brand-mark { width: 36px; height: 36px; filter: drop-shadow(0 8px 18px oklch(7% 0.04 290 / 0.32)); }
 .mark-page { fill: var(--crimson); }
 .mark-fold { fill: var(--amber); }
 .mark-letter { stroke: oklch(97% 0.01 300); }
@@ -240,21 +237,17 @@ button.quick-link { width: 100%; }
 .news-row > span { color: var(--faint); }
 .news-row strong { overflow: hidden; color: var(--ink); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 
-.library-content { display: grid; grid-template-rows: 74px minmax(0, 1fr); min-height: 0; padding: 0 26px 24px; }
-.journey { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 630px; margin: 0; padding: 14px 0 10px; list-style: none; }
-.journey::before { content: ""; position: absolute; top: 32px; left: 18px; right: 18px; height: 1px; background: var(--line); }
-.journey li { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 9px; color: var(--faint); }
-.journey li > span { z-index: 1; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line-strong); border-radius: 50%; background: oklch(18% 0.045 290); font-size: 10px; font-weight: 850; }
-.journey strong, .journey small { display: block; }
-.journey strong { color: inherit; font-size: 11px; }
-.journey small { margin-top: 2px; font-size: 9px; }
-.journey li.current { color: var(--ink); }
-.journey li.current > span { border-color: var(--amber); color: oklch(23% 0.05 78); background: var(--amber); }
-.journey li.complete { color: var(--ink); }
-.journey li.complete > span { border-color: var(--green); color: oklch(18% 0.045 290); background: var(--green); font-size: 0; }
-.journey li.complete > span::after { content: "✓"; font-size: 13px; }
+.library-content { display: grid; grid-template-rows: 58px minmax(0, 1fr); min-height: 0; padding: 0 26px 24px; }
+.journey { display: flex; align-items: center; gap: 0; margin: 0; padding: 10px 4px; list-style: none; }
+.journey li { display: none; align-items: baseline; gap: 9px; color: var(--ink); }
+.journey li.current, .journey li.current + li { display: flex; }
+.journey li > span { color: var(--amber); font-size: 8px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+.journey strong { font-size: 11px; }
+.journey li.current + li { position: relative; margin-left: 24px; padding-left: 38px; opacity: 0.28; mask-image: linear-gradient(to right, black 65%, transparent); }
+.journey li.current + li::before { content: "Next"; position: absolute; left: 0; color: var(--faint); font-size: 8px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.journey li.current + li > span { display: none; }
 
-.home-view { min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: oklch(22% 0.025 292 / 0.66); box-shadow: inset 0 1px 0 oklch(95% 0.02 300 / 0.08), 0 20px 50px oklch(7% 0.04 295 / 0.22); backdrop-filter: blur(18px); }
+.home-view { align-self: start; width: min(780px, 100%); overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: oklch(22% 0.025 292 / 0.66); box-shadow: inset 0 1px 0 oklch(95% 0.02 300 / 0.08), 0 20px 50px oklch(7% 0.04 295 / 0.22); backdrop-filter: blur(18px); }
 .game-details { width: min(720px, 100%); min-width: 0; padding: 36px; }
 .game-details h1 { margin: 7px 0 5px; color: var(--ink); font-size: 38px; line-height: 1; letter-spacing: -0.045em; }
 .intro { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
@@ -273,7 +266,7 @@ button.quick-link { width: 100%; }
 .back { min-height: 30px; margin-bottom: 20px; padding: 0; color: var(--muted); background: transparent; font-size: 10px; }
 .back:hover:not(:disabled) { color: var(--ink); background: transparent; transform: translateX(-2px); }
 .step-heading { display: flex; align-items: center; gap: 13px; }
-.step-heading > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: oklch(22% 0.05 78); background: var(--amber); font-size: 12px; font-weight: 900; }
+.step-heading > span { color: var(--amber); font-size: 9px; font-weight: 850; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
 .step-heading h2 { margin: 3px 0 0; color: var(--ink); font-size: 25px; line-height: 1.1; letter-spacing: -0.035em; }
 .step-copy { max-width: 620px; margin: 16px 0 20px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .actions { display: flex; flex-wrap: wrap; gap: 9px; }
@@ -331,9 +324,7 @@ input::placeholder { color: var(--faint); }
   .quick-link { padding-block: 8px; }
   .news-lead { min-height: 65px; }
   .news-row { min-height: 35px; }
-  .library-content { grid-template-rows: 66px minmax(0, 1fr); padding-bottom: 16px; }
-  .journey { padding-top: 10px; }
-  .journey::before { top: 28px; }
+  .library-content { grid-template-rows: 54px minmax(0, 1fr); padding-bottom: 16px; }
   .game-details { padding-block: 20px; }
   .devices { margin-top: 16px; }
   .setup { max-height: calc(100% - 12px); padding: 22px; }
@@ -361,8 +352,7 @@ input::placeholder { color: var(--faint); }
   .quick-links { min-height: 150px; }
   .news { min-height: 180px; }
   .library-content { display: block; padding: 0 14px 18px; }
-  .journey { height: 70px; }
-  .journey small { display: none; }
+  .journey { height: 58px; }
   .home-view { overflow: visible; }
   .game-details { padding: 24px 18px; }
   .device { grid-template-columns: auto minmax(0, 1fr); }

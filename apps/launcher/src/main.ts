@@ -136,9 +136,9 @@ app.innerHTML = `
 
         <div class="library-content">
           <ol class="journey" aria-label="Installation progress">
-            <li data-stage="prepare" class="current"><span>1</span><div><strong>Get ready</strong><small>Choose your game</small></div></li>
-            <li data-stage="connect"><span>2</span><div><strong>Connect</strong><small>Connect your phone</small></div></li>
-            <li data-stage="install"><span>3</span><div><strong>Install</strong><small>Finish setup</small></div></li>
+            <li data-stage="prepare" class="current"><span>1 of 3</span><strong>Get ready</strong></li>
+            <li data-stage="connect"><span>2 of 3</span><strong>Connect your phone</strong></li>
+            <li data-stage="install"><span>3 of 3</span><strong>Install Kanto</strong></li>
           </ol>
 
           <section class="home-view">
@@ -164,7 +164,7 @@ app.innerHTML = `
 
           <section id="setup" class="setup" hidden aria-live="polite">
             <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
-            <div class="step-heading"><span>1</span><div><p class="overline">GET READY</p><h2 id="setup-title">Choose Pokémon GO</h2></div></div>
+            <div class="step-heading"><span>Step 1</span><div><p class="overline">GET READY</p><h2 id="setup-title">Choose Pokémon GO</h2></div></div>
             <p class="step-copy">Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.</p>
             <div class="actions">
               <button id="download-original" hidden>Download Pokémon GO</button>
@@ -177,7 +177,7 @@ app.innerHTML = `
 
           <section id="ios-install" class="setup install-step" hidden>
             <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
-            <div class="step-heading"><span>2</span><div><p class="overline">CONNECT YOUR PHONE</p><h2>Finish on your iPhone</h2></div></div>
+            <div class="step-heading"><span>Step 2</span><div><p class="overline">CONNECT YOUR PHONE</p><h2>Finish on your iPhone</h2></div></div>
             <p class="step-copy">Unlock your iPhone, connect it with a cable, and tap Trust if asked. Your Apple password is never saved.</p>
             <div class="field-row">
               <label>Connected device<select id="ios-device"><option value="">No device found</option></select></label>
