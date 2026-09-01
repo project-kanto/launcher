@@ -1,0 +1,12 @@
+/target/
+/.idea/
+/.vscode/
+.DS_Store
+
+# Proprietary client archives and locally signed builds never belong in Git.
+*.apk
+*.ipa
+*.mobileprovision
+*.p12
+*.pem
+
