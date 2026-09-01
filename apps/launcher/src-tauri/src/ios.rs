@@ -173,7 +173,6 @@ pub(crate) async fn load_ios_setup() -> Result<IosSetup, String> {
 #[tauri::command]
 pub(crate) async fn apple_login(
     app: tauri::AppHandle,
-    state: tauri::State<'_, IosState>,
     email: String,
     password: String,
 ) -> Result<String, String> {
@@ -181,53 +180,67 @@ pub(crate) async fn apple_login(
         return Err("Enter your Apple ID and password.".to_owned());
     }
     let email = email.trim().to_owned();
-    let login_email = email.clone();
-    let login_password = password;
-    let prompt_app = app.clone();
-    let state_handle = state.inner();
-    let account = Account::login(
-        move || Ok((login_email.clone(), login_password.clone())),
-        move |request: TwoFactorRequest| {
-            let (sender, receiver) = mpsc::channel();
-            *state_handle
-                .0
-                .lock()
-                .map_err(|_| "Apple sign-in was interrupted.".to_owned())? = Some(sender);
-            let prompt = TwoFactorPrompt {
-                method: match request.method {
-                    TwoFactorMethod::Device => "device",
-                    TwoFactorMethod::Sms => "sms",
-                },
-                phones: request
-                    .trusted_phone_numbers
-                    .into_iter()
-                    .map(|phone| TrustedPhone {
-                        id: phone.id,
-                        last_two_digits: phone.last_two_digits,
-                    })
-                    .collect(),
-            };
-            prompt_app
-                .emit("apple-2fa-required", prompt)
-                .map_err(|_| "Kanto couldn't show the verification prompt.".to_owned())?;
-            receiver
-                .recv_timeout(Duration::from_secs(300))
-                .map_err(|_| "Apple verification timed out. Sign in again.".to_owned())
-        },
-        anisette(&app)?,
-    )
-    .await
-    .map_err(|_| "Apple sign-in failed. Check your details and verification code.".to_owned())?;
-    let account = account_from_session(email.clone(), account)
+    let (sender, receiver) = futures::channel::oneshot::channel();
+    std::thread::Builder::new()
+        .name("kanto-apple-login".to_owned())
+        .spawn(move || {
+            let result = tauri::async_runtime::block_on(async {
+                let login_email = email.clone();
+                let prompt_app = app.clone();
+                let account = Account::login(
+                    move || Ok((login_email.clone(), password.clone())),
+                    move |request: TwoFactorRequest| {
+                        let (sender, receiver) = mpsc::channel();
+                        *prompt_app
+                            .state::<IosState>()
+                            .0
+                            .lock()
+                            .map_err(|_| "Apple sign-in was interrupted.".to_owned())? =
+                            Some(sender);
+                        let prompt = TwoFactorPrompt {
+                            method: match request.method {
+                                TwoFactorMethod::Device => "device",
+                                TwoFactorMethod::Sms => "sms",
+                            },
+                            phones: request
+                                .trusted_phone_numbers
+                                .into_iter()
+                                .map(|phone| TrustedPhone {
+                                    id: phone.id,
+                                    last_two_digits: phone.last_two_digits,
+                                })
+                                .collect(),
+                        };
+                        prompt_app.emit("apple-2fa-required", prompt).map_err(|_| {
+                            "Kanto couldn't show the verification prompt.".to_owned()
+                        })?;
+                        receiver
+                            .recv_timeout(Duration::from_secs(300))
+                            .map_err(|_| "Apple verification timed out. Sign in again.".to_owned())
+                    },
+                    anisette(&app)?,
+                )
+                .await
+                .map_err(|_| {
+                    "Apple sign-in failed. Check your details and verification code.".to_owned()
+                })?;
+                let account = account_from_session(email.clone(), account)
+                    .await
+                    .map_err(|_| {
+                        "Apple signed in, but Kanto couldn't open the developer account.".to_owned()
+                    })?;
+                save_account(&account)?;
+                if let Ok(mut pending) = app.state::<IosState>().0.lock() {
+                    *pending = None;
+                }
+                Ok(email)
+            });
+            sender.send(result).ok();
+        })
+        .map_err(|_| "Kanto couldn't start Apple sign-in.".to_owned())?;
+    receiver
         .await
-        .map_err(|_| {
-            "Apple signed in, but Kanto couldn't open the developer account.".to_owned()
-        })?;
-    save_account(&account)?;
-    if let Ok(mut pending) = state.0.lock() {
-        *pending = None;
-    }
-    Ok(email)
+        .map_err(|_| "Apple sign-in was interrupted.".to_owned())?
 }
 
 #[tauri::command]
@@ -390,7 +403,7 @@ pub(crate) fn sign_and_install_ios(
 
 #[cfg(test)]
 mod tests {
-    use super::{bundle_identifier, devices};
+    use super::{Account, AnisetteConfiguration, bundle_identifier, devices};
 
     #[test]
     fn signing_bundle_id_only_uses_apple_safe_team_characters() {
@@ -407,5 +420,15 @@ mod tests {
         let connected = tauri::async_runtime::block_on(devices()).unwrap();
         assert!(!connected.is_empty());
         assert!(connected.iter().all(|device| !device.udid.is_empty()));
+    }
+
+    #[test]
+    #[ignore = "requires Apple services and SideStore anisette access"]
+    fn prepares_apple_authentication_headers() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let directory = tempfile::tempdir().unwrap();
+        let configuration =
+            AnisetteConfiguration::default().set_configuration_path(directory.path().to_path_buf());
+        tauri::async_runtime::block_on(Account::new(configuration)).unwrap();
     }
 }

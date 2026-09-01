@@ -238,7 +238,9 @@ async function loadIosSetup() {
 async function appleLogin() {
   const result = document.querySelector<HTMLElement>("#ios-result")!;
   const email = document.querySelector<HTMLInputElement>("#apple-email")!.value;
-  const password = document.querySelector<HTMLInputElement>("#apple-password")!.value;
+  const passwordInput = document.querySelector<HTMLInputElement>("#apple-password")!;
+  const password = passwordInput.value;
+  passwordInput.value = "";
   const button = document.querySelector<HTMLButtonElement>("#apple-login")!;
   button.disabled = true;
   result.className = "result checking";
@@ -258,7 +260,6 @@ async function appleLogin() {
     result.className = "result bad";
     result.textContent = String(error);
   } finally {
-    document.querySelector<HTMLInputElement>("#apple-password")!.value = "";
     button.disabled = false;
   }
 }

@@ -227,6 +227,10 @@ async fn prepare_release(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(desktop)]
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("the TLS provider is only installed once at startup");
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_kanto_device::init())
         .plugin(tauri_plugin_dialog::init());
