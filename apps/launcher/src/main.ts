@@ -104,7 +104,7 @@ app.innerHTML = `
         <header class="page-bar">
           <div class="page-identity">
             <svg class="mobile-brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
-            <div><span>Welcome back</span><strong>Kanto Launcher</strong></div>
+            <div><strong>Kanto</strong></div>
           </div>
           <div id="server-status" class="status-pill status-loading" role="status"><span></span>Checking Kanto</div>
         </header>
@@ -131,23 +131,23 @@ app.innerHTML = `
             <div class="quick-links">
               <button class="quick-link server-link" data-view="library">
                 <span class="quick-icon"><span class="live-dot"></span></span>
-                <span><small>Game server</small><strong id="home-server-label">Checking status…</strong></span>
+                <span><small>Server</small><strong id="home-server-label">Checking…</strong></span>
                 <span aria-hidden="true">→</span>
               </button>
               <a class="quick-link support-link" href="https://kanto.ac/support" target="_blank" rel="noopener noreferrer external">
                 <span class="quick-icon">♥</span>
-                <span><small>Keep Kanto running</small><strong>Support the project</strong></span>
+                <span><small>Support Kanto</small><strong>Donate</strong></span>
                 <span aria-hidden="true">↗</span>
               </a>
             </div>
 
             <section class="news" aria-labelledby="news-heading">
-              <div class="section-heading"><span>Latest news</span><a href="https://kanto.ac/community" target="_blank" rel="noopener noreferrer external">Community ↗</a></div>
+              <div class="section-heading"><span>Updates</span><a href="https://kanto.ac/community" target="_blank" rel="noopener noreferrer external">Discord ↗</a></div>
               <a class="news-lead" href="https://kanto.ac/community" target="_blank" rel="noopener noreferrer external">
-                <div><span>Current release</span><strong id="news-version">Kanto is checking for updates</strong><small>The latest game build and server status, together in one place.</small></div>
+                <div><span>Latest version</span><strong id="news-version">Checking…</strong><small>Open Play to install or update.</small></div>
                 <span aria-hidden="true">→</span>
               </a>
-              <div class="news-row"><span>Launcher preview</span><strong>A simpler route from download to your phone</strong><small>Now</small></div>
+              <div class="news-row"><span>Discord</span><strong>News and announcements</strong><small>Open</small></div>
             </section>
           </div>
         </div>
@@ -157,7 +157,7 @@ app.innerHTML = `
         <header class="page-bar library-bar">
           <div class="page-identity">
             <svg class="mobile-brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
-            <div><span>Play</span><strong id="workspace-heading">Kanto</strong></div>
+            <div><strong id="workspace-heading">Play</strong></div>
           </div>
         </header>
 
@@ -170,9 +170,9 @@ app.innerHTML = `
 
           <section class="home-view">
             <div class="game-details">
-              <p class="overline">PLAY KANTO</p>
-              <h1 id="play-heading">Choose your phone</h1>
-              <p id="play-copy" class="intro">We’ll guide you through installing Kanto from start to finish.</p>
+              <p class="overline">Kanto</p>
+              <h1 id="play-heading">Play Kanto</h1>
+              <p id="play-copy" class="intro">Choose where you want to install it.</p>
 
               <div class="devices" aria-label="Choose your phone">
                 <article class="device" data-card="android">
@@ -192,7 +192,7 @@ app.innerHTML = `
           <section id="setup" class="setup" hidden aria-live="polite">
             <button class="back" data-close-setup aria-label="Back to Play">← Play</button>
             <div class="step-heading"><h2 id="setup-title">Choose Pokémon GO</h2></div>
-            <p id="setup-copy" class="step-copy">Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.</p>
+            <p id="setup-copy" class="step-copy">Select the Pokémon GO file you downloaded.</p>
             <p id="source-result" class="result" role="status"></p>
             <div class="actions">
               <button id="download-original" hidden>Download Pokémon GO</button>
@@ -377,17 +377,17 @@ function renderAndroidState() {
   button.dataset.androidAction = "install";
 
   if (!dashboard.supports_32_bit_apps) {
-    description.textContent = "This phone only supports newer 64-bit apps.";
+    description.textContent = "Kanto can’t run directly on this phone.";
     compatibility.hidden = false;
     compatibility.textContent =
-      "Kanto needs 32-bit app support. You can try it inside a VPhone-style environment.";
+      "This phone does not support older 32-bit apps. You can try a compatible virtual Android app.";
     availability.textContent = "Not compatible";
     button.textContent = "Not supported";
     button.disabled = true;
     return;
   }
   if (!release) {
-    description.textContent = "Kanto is not available to install right now.";
+    description.textContent = "Kanto is unavailable right now.";
     availability.textContent = "Not available";
     button.textContent = "Unavailable";
     button.disabled = true;
@@ -396,18 +396,18 @@ function renderAndroidState() {
   button.disabled = false;
   const version = release.release_version ?? dashboard.server?.version ?? "latest";
   if (current) {
-    description.textContent = "The latest Kanto build is installed and ready.";
-    availability.textContent = `Installed · Kanto ${version}`;
-    button.textContent = "Open Kanto";
+    description.textContent = "You have the latest version.";
+    availability.textContent = `Kanto ${version}`;
+    button.textContent = "Play";
     button.dataset.androidAction = "open";
   } else if (dashboard.installed_android) {
-    description.textContent = "A newer Kanto build is ready to install.";
-    availability.textContent = `Update available · Kanto ${version}`;
-    button.textContent = "Update Kanto";
-  } else {
-    description.textContent = "Install Kanto directly on your phone.";
+    description.textContent = "A new version is available.";
     availability.textContent = `Kanto ${version}`;
-    button.textContent = "Install Kanto";
+    button.textContent = "Update";
+  } else {
+    description.textContent = "Install Kanto on this phone.";
+    availability.textContent = `Kanto ${version}`;
+    button.textContent = "Install";
   }
 }
 
@@ -436,10 +436,10 @@ function showSetup(platform: Platform) {
   const setup = document.querySelector<HTMLElement>("#setup")!;
   const source = manifest(platform)?.source_url;
   const cached = hasCachedOriginal(platform);
-  document.querySelector("#setup-title")!.textContent = cached ? "Pokémon GO is ready" : "Choose Pokémon GO";
+  document.querySelector("#setup-title")!.textContent = cached ? "Ready to continue" : "Choose Pokémon GO";
   document.querySelector("#setup-copy")!.textContent = cached
-    ? "Your verified game file is saved on this device. You won’t need to choose it again."
-    : "Choose your Pokémon GO app file to begin. We’ll check that it works with Kanto before continuing.";
+    ? "Your game file is saved on this device."
+    : "Select the Pokémon GO file you downloaded.";
   const download = document.querySelector<HTMLButtonElement>("#download-original")!;
   download.hidden = !source && !cached;
   download.textContent = cached ? "Continue" : "Download Pokémon GO";
@@ -500,7 +500,7 @@ async function prepare(sourcePath?: string) {
       else dashboard.cached_ios_original = true;
     }
     if (activePlatform === "android" && dashboard?.host === "android") {
-      result.textContent = `Kanto ${prepared.release_version} is ready. Tap Install Kanto to finish.`;
+      result.textContent = `Kanto ${prepared.release_version} is ready to install.`;
       document.querySelector<HTMLButtonElement>("#download-original")!.hidden = true;
       document.querySelector<HTMLButtonElement>("#choose-original")!.hidden = true;
       document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
@@ -680,11 +680,11 @@ async function refreshAndroidState() {
           item.classList.add("complete");
         });
         result.className = "result good";
-        result.textContent = "Kanto is installed and ready to play.";
-        install.textContent = "Open Kanto";
+        result.textContent = "Kanto is ready to play.";
+        install.textContent = "Play";
       } else {
         result.className = "result bad";
-        result.textContent = "Installation wasn’t completed. Tap Install Kanto to try again.";
+        result.textContent = "Kanto wasn’t installed. Tap Install to try again.";
       }
     }
   } catch {
@@ -704,7 +704,7 @@ async function load() {
     document.querySelector("#rail-version")!.textContent =
       dashboard.server ? `v${dashboard.server.version}` : "Offline";
     document.querySelector("#news-version")!.textContent = dashboard.server
-      ? `Kanto ${dashboard.server.version} is ready`
+      ? `Kanto ${dashboard.server.version}`
       : "Kanto is currently unavailable";
     const status = document.querySelector<HTMLElement>("#server-status")!;
     const reported = dashboard.server?.status ?? "offline";
@@ -725,12 +725,11 @@ async function load() {
     }
     if (dashboard.host === "android") {
       document.querySelector<HTMLElement>('[data-card="ios"]')!.hidden = true;
-      document.querySelector("#play-heading")!.textContent = "Install Kanto";
-      document.querySelector("#play-copy")!.textContent =
-        "Choose your original game once. Kanto will check it, prepare it, and open Android’s installer.";
+      document.querySelector("#play-heading")!.textContent = "Kanto for Android";
+      document.querySelector("#play-copy")!.textContent = "Install or update Kanto on this phone.";
       document.querySelector(".hero-action-label")!.textContent = "Install Kanto";
-      document.querySelector('[data-stage="prepare"] strong')!.textContent = "Choose game";
-      document.querySelector('[data-stage="connect"] strong')!.textContent = "Prepare Kanto";
+      document.querySelector('[data-stage="prepare"] strong')!.textContent = "Get ready";
+      document.querySelector('[data-stage="connect"] strong')!.textContent = "Prepare";
       document.querySelector('[data-stage="install"] strong')!.textContent = "Install";
       renderAndroidState();
       const pendingPath = localStorage.getItem(pendingAndroidInstallKey);
