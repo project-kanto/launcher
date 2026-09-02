@@ -301,7 +301,8 @@ input::placeholder { color: var(--faint); }
 .guide-heading > span { color: var(--amber); font-size: 9px; font-weight: 850; letter-spacing: 0.14em; text-transform: uppercase; }
 .guide-heading h2 { margin: 5px 0 4px; font-size: 27px; letter-spacing: -0.035em; }
 .guide-heading p { margin: 0; color: var(--muted); font-size: 11px; }
-.guide-image { display: block; width: 100%; min-height: 0; border: 1px solid var(--line); border-radius: 15px; background: oklch(12% 0.025 290); }
+.guide-images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-height: 0; }
+.guide-images img { display: block; width: 100%; min-width: 0; aspect-ratio: 1; object-fit: contain; border: 1px solid var(--line); border-radius: 14px; background: oklch(12% 0.025 290); }
 .guide-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 0; padding: 0; list-style: none; counter-reset: guide-step; }
 .guide-steps li { display: grid; grid-template-columns: 24px 1fr; column-gap: 9px; counter-increment: guide-step; }
 .guide-steps li::before { content: counter(guide-step); display: grid; place-items: center; grid-row: 1 / 3; align-self: start; width: 24px; height: 24px; border-radius: 50%; color: oklch(99% 0 0); background: var(--crimson); font-size: 10px; font-weight: 850; }
@@ -386,7 +387,7 @@ input::placeholder { color: var(--faint); }
   .install-actions, .guide-footer { align-items: stretch; flex-direction: column; }
   .guide-dialog { width: calc(100vw - 24px); max-height: calc(100vh - 24px); overflow: auto; }
   .guide-panel { padding: 20px 16px; }
-  .guide-image { min-width: 620px; }
+  .guide-images { min-width: 620px; }
   .guide-steps { grid-template-columns: 1fr; }
 }
 

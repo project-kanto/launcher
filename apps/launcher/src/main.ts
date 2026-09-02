@@ -219,14 +219,18 @@ app.innerHTML = `
           <h2 id="developer-mode-title">Turn on Developer Mode</h2>
           <p>Your iPhone may ask for this before Kanto can open. It only takes a minute.</p>
         </div>
-        <img class="guide-image" src="/guides/developer-mode.svg" alt="">
+        <div class="guide-images">
+          <img src="/guides/developer-mode-settings.webp" alt="iPhone Settings showing Privacy &amp; Security and the Developer Mode option.">
+          <img src="/guides/developer-mode-restart.webp" alt="iPhone Developer Mode switch and the Restart confirmation.">
+          <img src="/guides/developer-mode-confirm.webp" alt="iPhone confirmation and passcode screens shown after restarting.">
+        </div>
         <ol class="guide-steps">
           <li><strong>Find Developer Mode</strong><span>Open Settings → Privacy &amp; Security, scroll down, then tap Developer Mode.</span></li>
           <li><strong>Restart your iPhone</strong><span>Turn Developer Mode on, then tap Restart when your iPhone asks.</span></li>
           <li><strong>Confirm after restart</strong><span>Unlock your iPhone, tap Enable, and enter your passcode if asked.</span></li>
         </ol>
         <div class="guide-footer">
-          <p>Can’t see Developer Mode? Finish installing Kanto first, keep your iPhone connected, then check again.</p>
+          <p>Can’t see Developer Mode? Finish installing Kanto first, keep your iPhone connected, then check again. Your screens may look slightly different on newer iOS versions.</p>
           <button value="done">Got it</button>
         </div>
       </form>
