@@ -3657,7 +3657,6 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "idevice",
- "jni 0.22.4",
  "kanto-release",
  "keyring",
  "plume_core",
@@ -3665,7 +3664,6 @@ dependencies = [
  "plume_utils",
  "reqwest 0.13.4",
  "rustls",
- "rustls-platform-verifier",
  "serde",
  "serde_json",
  "tauri",
@@ -3674,6 +3672,7 @@ dependencies = [
  "tauri-plugin-kanto-device",
  "tauri-plugin-opener",
  "tempfile",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]

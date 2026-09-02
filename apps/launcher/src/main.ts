@@ -12,15 +12,15 @@ interface Manifest {
 }
 
 interface InstalledGame {
-  package_name: string;
-  version_name?: string;
+  packageName: string;
+  versionName?: string;
   sha256?: string;
 }
 
 interface AndroidState {
-  supports_32_bit_apps: boolean;
-  can_install_apps: boolean;
-  installed_game?: InstalledGame;
+  supports32BitApps: boolean;
+  canInstallApps: boolean;
+  installedGame?: InstalledGame;
 }
 
 interface Dashboard {
@@ -311,6 +311,7 @@ let preparedPath: string | undefined;
 let awaitingAndroidPermission = false;
 let awaitingAndroidInstaller = false;
 let refreshingAndroidState = false;
+const pendingAndroidInstallKey = "kanto.pendingAndroidInstall";
 
 type Stage = "prepare" | "connect" | "install";
 
@@ -364,6 +365,9 @@ function hasCurrentAndroidBuild(): boolean {
 
 function renderAndroidState() {
   if (!dashboard || dashboard.host !== "android") return;
+  const current = hasCurrentAndroidBuild();
+  document.querySelector<HTMLElement>(".journey")!.hidden = current;
+  document.querySelector<HTMLElement>(".library-content")!.style.gridTemplateRows = current ? "minmax(0, 1fr)" : "";
   const release = dashboard.android;
   const button = document.querySelector<HTMLButtonElement>('[data-start="android"]')!;
   const availability = document.querySelector<HTMLElement>("#android-version")!;
@@ -391,7 +395,7 @@ function renderAndroidState() {
   }
   button.disabled = false;
   const version = release.release_version ?? dashboard.server?.version ?? "latest";
-  if (hasCurrentAndroidBuild()) {
+  if (current) {
     description.textContent = "The latest Kanto build is installed and ready.";
     availability.textContent = `Installed · Kanto ${version}`;
     button.textContent = "Open Kanto";
@@ -497,6 +501,9 @@ async function prepare(sourcePath?: string) {
     }
     if (activePlatform === "android" && dashboard?.host === "android") {
       result.textContent = `Kanto ${prepared.release_version} is ready. Tap Install Kanto to finish.`;
+      document.querySelector<HTMLButtonElement>("#download-original")!.hidden = true;
+      document.querySelector<HTMLButtonElement>("#choose-original")!.hidden = true;
+      document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
       document.querySelector<HTMLButtonElement>("#android-install-help")!.hidden = false;
       document.querySelector<HTMLButtonElement>("#install-android")!.hidden = false;
       setStage("install");
@@ -636,9 +643,11 @@ async function installAndroid() {
       return;
     }
     awaitingAndroidInstaller = true;
+    localStorage.removeItem(pendingAndroidInstallKey);
     result.className = "result checking";
     result.textContent = "Android’s installer is open. Confirm Install, then return to Kanto Launcher.";
   } catch (error) {
+    localStorage.removeItem(pendingAndroidInstallKey);
     result.className = "result bad";
     result.textContent = String(error);
   }
@@ -649,12 +658,12 @@ async function refreshAndroidState() {
   refreshingAndroidState = true;
   try {
     const state = await invoke<AndroidState>("load_android_state");
-    dashboard.supports_32_bit_apps = state.supports_32_bit_apps;
-    dashboard.can_install_apps = state.can_install_apps;
-    dashboard.installed_android = state.installed_game;
+    dashboard.supports_32_bit_apps = state.supports32BitApps;
+    dashboard.can_install_apps = state.canInstallApps;
+    dashboard.installed_android = state.installedGame;
     renderAndroidState();
 
-    if (awaitingAndroidPermission && state.can_install_apps) {
+    if (awaitingAndroidPermission && state.canInstallApps) {
       awaitingAndroidPermission = false;
       const guide = document.querySelector<HTMLDialogElement>("#android-install-guide")!;
       if (guide.open) guide.close();
@@ -724,6 +733,18 @@ async function load() {
       document.querySelector('[data-stage="connect"] strong')!.textContent = "Prepare Kanto";
       document.querySelector('[data-stage="install"] strong')!.textContent = "Install";
       renderAndroidState();
+      const pendingPath = localStorage.getItem(pendingAndroidInstallKey);
+      if (pendingPath && dashboard.can_install_apps && !hasCurrentAndroidBuild()) {
+        showSetup("android");
+        preparedPath = pendingPath;
+        document.querySelector<HTMLButtonElement>("#download-original")!.hidden = true;
+        document.querySelector<HTMLButtonElement>("#choose-original")!.hidden = true;
+        document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
+        document.querySelector<HTMLButtonElement>("#android-install-help")!.hidden = false;
+        document.querySelector<HTMLButtonElement>("#install-android")!.hidden = false;
+        setStage("install");
+        await installAndroid();
+      }
     } else {
       document.querySelector<HTMLElement>('[data-card="android"]')!.hidden = true;
     }
@@ -776,11 +797,13 @@ document.querySelector("#open-install-settings")!.addEventListener("click", asyn
   const result = document.querySelector<HTMLElement>("#source-result")!;
   try {
     awaitingAndroidPermission = true;
+    if (preparedPath) localStorage.setItem(pendingAndroidInstallKey, preparedPath);
     result.className = "result checking";
     result.textContent = "Turn on Allow from this source, then return here.";
     await invoke("open_android_install_settings");
   } catch (error) {
     awaitingAndroidPermission = false;
+    localStorage.removeItem(pendingAndroidInstallKey);
     result.className = "result bad";
     result.textContent = String(error);
   }
