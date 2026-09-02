@@ -72,6 +72,10 @@ app.innerHTML = `
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>
           <span>Play</span>
         </button>
+        <a class="nav-item" href="https://kanto.ac/map/" target="_blank" rel="noopener noreferrer external">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+          <span>Scanner</span>
+        </a>
       </nav>
 
       <div class="rail-footer">
