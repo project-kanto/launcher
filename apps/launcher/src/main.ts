@@ -129,7 +129,10 @@ app.innerHTML = `
             <div class="hero-copy">
               <h1>Adventure,<br>the way you remember it.</h1>
               <p>Kanto brings the original mobile adventure back online, with a growing world and a launcher that handles the fiddly bits.</p>
-              <button class="hero-action" data-view="library"><span class="hero-action-label">Play Kanto</span><span aria-hidden="true">→</span></button>
+              <div class="hero-install">
+                <button class="hero-action" data-view="library"><span class="hero-action-label">Install Kanto</span><span aria-hidden="true">→</span></button>
+                <span class="hero-device-hint">Plug your iPhone or iPad into this computer first.</span>
+              </div>
             </div>
           </section>
 
