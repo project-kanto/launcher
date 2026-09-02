@@ -1,6 +1,7 @@
 use std::{io::Read, path::PathBuf, time::Duration};
 
 use kanto_release::{GameReleaseManifest, sha256};
+use semver::Version;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tauri::Manager;
 use tauri_plugin_kanto_device::{DeviceCapabilities, GameRequest, InstalledGame, KantoDeviceExt};
@@ -13,6 +14,8 @@ const API_BASE: &str = match option_env!("KANTO_LAUNCHER_API_BASE") {
     None => "https://kanto.ac",
 };
 const MAX_ARTIFACT_BYTES: u64 = 256 * 1024 * 1024;
+const LAUNCHER_RELEASE_API: &str =
+    "https://api.github.com/repos/project-kanto/launcher/releases/latest";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ServerStatus {
@@ -45,6 +48,36 @@ struct SourceCheck {
 struct PreparedBuild {
     path: PathBuf,
     release_version: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitHubRelease {
+    tag_name: String,
+    html_url: String,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize)]
+struct LauncherUpdate {
+    current_version: String,
+    latest_version: Option<String>,
+    available: bool,
+    url: Option<String>,
+}
+
+fn launcher_update(current: &Version, release: Option<GitHubRelease>) -> LauncherUpdate {
+    let latest = release.and_then(|release| {
+        Version::parse(release.tag_name.trim_start_matches('v'))
+            .ok()
+            .map(|version| (version, release.html_url))
+    });
+    LauncherUpdate {
+        current_version: current.to_string(),
+        latest_version: latest.as_ref().map(|(version, _)| version.to_string()),
+        available: latest
+            .as_ref()
+            .is_some_and(|(version, _)| version > current),
+        url: latest.map(|(_, url)| url),
+    }
 }
 
 async fn get<T: DeserializeOwned>(client: &reqwest::Client, path: &str) -> Option<T> {
@@ -88,6 +121,29 @@ async fn release(client: &reqwest::Client, platform: &str) -> Option<GameRelease
     .await?;
     manifest.validate().ok()?;
     Some(manifest)
+}
+
+#[tauri::command]
+async fn check_launcher_update(app: tauri::AppHandle) -> Result<LauncherUpdate, String> {
+    let client = http_client(10);
+    let response = client
+        .get(LAUNCHER_RELEASE_API)
+        .header(reqwest::header::USER_AGENT, "Kanto-Launcher")
+        .send()
+        .await
+        .map_err(|_| "Kanto couldn't check for launcher updates.".to_owned())?;
+    let release = match response.status() {
+        reqwest::StatusCode::NOT_FOUND => None,
+        _ => Some(
+            response
+                .error_for_status()
+                .map_err(|_| "Kanto couldn't check for launcher updates.".to_owned())?
+                .json::<GitHubRelease>()
+                .await
+                .map_err(|_| "Kanto received an invalid launcher update.".to_owned())?,
+        ),
+    };
+    Ok(launcher_update(&app.package_info().version, release))
 }
 
 async fn download(client: &reqwest::Client, url: &str, expected: u64) -> Result<Vec<u8>, String> {
@@ -353,7 +409,9 @@ pub fn run() {
             open_android_install_settings,
             verify_original,
             prepare_release,
+            check_launcher_update,
             install_prepared,
+            ios::load_ios_devices,
             ios::load_ios_setup,
             ios::apple_login,
             ios::respond_apple_2fa,
@@ -367,9 +425,40 @@ pub fn run() {
         open_android_install_settings,
         verify_original,
         prepare_release,
+        check_launcher_update,
         install_prepared
     ]);
     builder
         .run(tauri::generate_context!())
         .expect("error while running Kanto Launcher");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{GitHubRelease, LauncherUpdate, launcher_update};
+    use semver::Version;
+
+    #[test]
+    fn only_newer_stable_releases_are_updates() {
+        let current = Version::parse("0.2.0").unwrap();
+        assert_eq!(
+            launcher_update(
+                &current,
+                Some(GitHubRelease {
+                    tag_name: "v0.3.0".to_owned(),
+                    html_url: "https://github.com/project-kanto/launcher/releases/tag/v0.3.0"
+                        .to_owned(),
+                })
+            ),
+            LauncherUpdate {
+                current_version: "0.2.0".to_owned(),
+                latest_version: Some("0.3.0".to_owned()),
+                available: true,
+                url: Some(
+                    "https://github.com/project-kanto/launcher/releases/tag/v0.3.0".to_owned()
+                ),
+            }
+        );
+        assert!(!launcher_update(&current, None).available);
+    }
 }

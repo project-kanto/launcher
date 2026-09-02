@@ -24,6 +24,7 @@ tauri-plugin-dialog = "2"
 kanto-release = { path = "../../../crates/kanto-release" }
 tauri-plugin-kanto-device = { path = "../../../plugins" }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+semver = "1"
 serde = { version = "1", features = ["derive"] }
 tauri-plugin-opener = "2"
 
@@ -31,6 +32,7 @@ tauri-plugin-opener = "2"
 futures = { version = "0.3", default-features = false, features = ["std"] }
 idevice = { git = "https://github.com/jkcoxson/idevice", rev = "5171e34e3a236842af1160a84d955d037ddca3af", default-features = false, features = ["full", "ring"] }
 keyring = "4.2"
+plist = "1"
 plume_core = { git = "https://github.com/claration/Impactor", rev = "79c72e9762ffc7886201e34ba0068f6fbeae5403", features = ["tweaks"] }
 plume_store = { git = "https://github.com/claration/Impactor", rev = "79c72e9762ffc7886201e34ba0068f6fbeae5403" }
 plume_utils = { git = "https://github.com/claration/Impactor", rev = "79c72e9762ffc7886201e34ba0068f6fbeae5403" }

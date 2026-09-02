@@ -8,7 +8,10 @@
     "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [{ "url": "https://kanto.ac/*" }]
+      "allow": [
+        { "url": "https://kanto.ac/*" },
+        { "url": "https://github.com/project-kanto/launcher/releases/*" }
+      ]
     }
   ]
 }

@@ -247,6 +247,7 @@ button.quick-link { width: 100%; }
 .news-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 42px; padding: 8px 4px 0; color: var(--muted); font-size: 9px; }
 .news-row > span { color: var(--faint); }
 .news-row strong { overflow: hidden; color: var(--ink); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.launcher-row button { min-height: 26px; padding: 0 9px; border-radius: 7px; font-size: 9px; }
 
 .library-content { display: grid; grid-template-rows: 58px minmax(0, 1fr); min-height: 0; padding: 0 26px 24px; }
 .journey { display: flex; align-items: center; gap: 0; margin: 0; padding: 10px 4px; list-style: none; }

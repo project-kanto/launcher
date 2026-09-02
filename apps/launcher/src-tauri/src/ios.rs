@@ -6,7 +6,11 @@ use std::{
 };
 
 use futures::future::join_all;
-use idevice::usbmuxd::UsbmuxdConnection;
+use idevice::{
+    IdeviceService,
+    installation_proxy::InstallationProxyClient,
+    usbmuxd::{UsbmuxdAddr, UsbmuxdConnection},
+};
 use keyring::Entry;
 use plume_core::{
     AnisetteConfiguration, CertificateIdentity,
@@ -21,6 +25,8 @@ use tauri::{Emitter, Manager};
 const SESSION_SERVICE: &str = "ac.kanto.launcher.apple-session";
 const CERTIFICATE_SERVICE: &str = "ac.kanto.launcher.apple-certificate";
 const SELECTED_ACCOUNT: &str = "selected";
+const KANTO_BUNDLE_PREFIX: &str = "ac.kanto.game.";
+const KANTO_RELEASE_KEY: &str = "KantoReleaseVersion";
 
 pub(crate) struct IosState(pub Mutex<Option<mpsc::Sender<TwoFactorAction>>>);
 
@@ -28,6 +34,9 @@ pub(crate) struct IosState(pub Mutex<Option<mpsc::Sender<TwoFactorAction>>>);
 pub(crate) struct IosDevice {
     name: String,
     udid: String,
+    kanto_installed: bool,
+    installed_version: Option<String>,
+    inspection_available: bool,
 }
 
 #[derive(Serialize)]
@@ -95,6 +104,47 @@ async fn devices() -> Result<Vec<Device>, String> {
     Ok(join_all(found.into_iter().map(Device::new)).await)
 }
 
+fn installed_kanto(apps: &[plist::Value]) -> (bool, Option<String>) {
+    apps.iter()
+        .filter_map(plist::Value::as_dictionary)
+        .find(|app| {
+            app.get("CFBundleIdentifier")
+                .and_then(plist::Value::as_string)
+                .is_some_and(|identifier| identifier.starts_with(KANTO_BUNDLE_PREFIX))
+        })
+        .map(|app| {
+            (
+                true,
+                app.get(KANTO_RELEASE_KEY)
+                    .and_then(plist::Value::as_string)
+                    .map(str::to_owned),
+            )
+        })
+        .unwrap_or((false, None))
+}
+
+async fn installed_kanto_on(device: &Device) -> Result<(bool, Option<String>), String> {
+    let usb = device
+        .usbmuxd_device
+        .as_ref()
+        .ok_or_else(|| "This device is not connected by USB.".to_owned())?;
+    let provider = usb.to_provider(UsbmuxdAddr::default(), "kanto_launcher_inspection");
+    let mut client = InstallationProxyClient::connect(&provider)
+        .await
+        .map_err(|_| "Unlock this device and tap Trust to check Kanto.".to_owned())?;
+    let mut options = plist::Dictionary::new();
+    options.insert("ApplicationType".to_owned(), "User".into());
+    options.insert(
+        "ReturnAttributes".to_owned(),
+        plist::Value::Array(vec!["CFBundleIdentifier".into(), KANTO_RELEASE_KEY.into()]),
+    );
+    let apps = client
+        .browse(Some(plist::Value::Dictionary(options)))
+        .await
+        .map_err(|_| "Unlock this device and tap Trust to check Kanto.".to_owned())?;
+    Ok(installed_kanto(&apps))
+}
+
 fn prepared_ipa(app: &tauri::AppHandle, path: &Path) -> Result<(), String> {
     let expected = app
         .path()
@@ -150,20 +200,34 @@ fn save_certificate_key(root: &Path, team_id: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub(crate) async fn load_ios_devices() -> Result<Vec<IosDevice>, String> {
+    Ok(
+        join_all(devices().await?.into_iter().map(|device| async move {
+            let inspected = installed_kanto_on(&device).await;
+            let (kanto_installed, installed_version, inspection_available) = match inspected {
+                Ok((installed, version)) => (installed, version, true),
+                Err(_) => (false, None, false),
+            };
+            IosDevice {
+                name: if device.name.is_empty() {
+                    "Connected iPhone or iPad".to_owned()
+                } else {
+                    device.name
+                },
+                udid: device.udid,
+                kanto_installed,
+                installed_version,
+                inspection_available,
+            }
+        }))
+        .await,
+    )
+}
+
+#[tauri::command]
 pub(crate) async fn load_ios_setup() -> Result<IosSetup, String> {
     let signed_in_as = load_account().ok().map(|account| account.email().clone());
-    let devices = devices()
-        .await?
-        .into_iter()
-        .map(|device| IosDevice {
-            name: if device.name.is_empty() {
-                "Connected iPhone or iPad".to_owned()
-            } else {
-                device.name
-            },
-            udid: device.udid,
-        })
-        .collect();
+    let devices = load_ios_devices().await?;
     Ok(IosSetup {
         devices,
         signed_in_as,
@@ -273,6 +337,10 @@ async fn sign_and_install(
     udid: String,
 ) -> Result<(), String> {
     prepared_ipa(&app, &path)?;
+    let release_version = super::release(&super::http_client(10), "ios")
+        .await
+        .and_then(|manifest| manifest.release_version)
+        .ok_or_else(|| "Kanto couldn't check the latest iPhone version.".to_owned())?;
     let account = load_account()?;
     let team_id = account.team_id().clone();
     let bundle_id = bundle_identifier(&team_id)?;
@@ -318,6 +386,9 @@ async fn sign_and_install(
         let bundle = package
             .get_package_bundle()
             .map_err(|_| "The prepared iPhone build is invalid.".to_owned())?;
+        bundle
+            .set_info_plist_key(KANTO_RELEASE_KEY, release_version)
+            .map_err(|_| "Kanto couldn't mark the iPhone build version.".to_owned())?;
         let options = SignerOptions {
             custom_identifier: Some(bundle_id),
             custom_name: Some("Kanto".to_owned()),
@@ -404,7 +475,10 @@ pub(crate) fn sign_and_install_ios(
 
 #[cfg(test)]
 mod tests {
-    use super::{Account, AnisetteConfiguration, bundle_identifier, devices};
+    use super::{
+        Account, AnisetteConfiguration, KANTO_RELEASE_KEY, bundle_identifier, devices,
+        installed_kanto, installed_kanto_on,
+    };
 
     #[test]
     fn signing_bundle_id_only_uses_apple_safe_team_characters() {
@@ -416,11 +490,34 @@ mod tests {
     }
 
     #[test]
+    fn reads_the_kanto_release_marker_from_an_installed_app() {
+        let mut app = plist::Dictionary::new();
+        app.insert("CFBundleIdentifier".to_owned(), "ac.kanto.game.team".into());
+        app.insert(KANTO_RELEASE_KEY.to_owned(), "0.74.3".into());
+        assert_eq!(
+            installed_kanto(&[plist::Value::Dictionary(app)]),
+            (true, Some("0.74.3".to_owned()))
+        );
+    }
+
+    #[test]
     #[ignore = "requires an unlocked, trusted iPhone or iPad connected by USB"]
     fn sees_a_connected_apple_device() {
         let connected = tauri::async_runtime::block_on(devices()).unwrap();
         assert!(!connected.is_empty());
         assert!(connected.iter().all(|device| !device.udid.is_empty()));
+    }
+
+    #[test]
+    #[ignore = "requires an unlocked, trusted iPhone or iPad connected by USB"]
+    fn checks_kanto_on_a_connected_apple_device() {
+        tauri::async_runtime::block_on(async {
+            let connected = devices().await.unwrap();
+            assert!(!connected.is_empty());
+            for device in connected {
+                installed_kanto_on(&device).await.unwrap();
+            }
+        });
     }
 
     #[test]

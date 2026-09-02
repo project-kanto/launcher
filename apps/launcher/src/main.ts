@@ -52,8 +52,23 @@ interface InstallResponse {
 }
 
 interface IosSetup {
-  devices: { name: string; udid: string }[];
+  devices: IosDevice[];
   signed_in_as: string | null;
+}
+
+interface IosDevice {
+  name: string;
+  udid: string;
+  kanto_installed: boolean;
+  installed_version: string | null;
+  inspection_available: boolean;
+}
+
+interface LauncherUpdate {
+  current_version: string;
+  latest_version: string | null;
+  available: boolean;
+  url: string | null;
 }
 
 interface TwoFactorPrompt {
@@ -112,7 +127,6 @@ app.innerHTML = `
         <div class="home-content">
           <section class="home-hero">
             <div class="hero-copy">
-              <span class="eyebrow">THE PRESERVED 2016 WORLD</span>
               <h1>Adventure,<br>the way you remember it.</h1>
               <p>Kanto brings the original mobile adventure back online, with a growing world and a launcher that handles the fiddly bits.</p>
               <button class="hero-action" data-view="library"><span class="hero-action-label">Play Kanto</span><span aria-hidden="true">→</span></button>
@@ -147,7 +161,11 @@ app.innerHTML = `
                 <div><span>Latest version</span><strong id="news-version">Checking…</strong><small>Open Play to install or update.</small></div>
                 <span aria-hidden="true">→</span>
               </a>
-              <div class="news-row"><span>Discord</span><strong>News and announcements</strong><small>Open</small></div>
+              <div class="news-row launcher-row">
+                <span>Launcher</span><strong id="launcher-version">Checking…</strong>
+                <small id="launcher-update-state">Checking…</small>
+                <button id="launcher-update" hidden>Update</button>
+              </div>
             </section>
           </div>
         </div>
@@ -182,7 +200,7 @@ app.innerHTML = `
                 </article>
                 <article class="device" data-card="ios">
                   <span class="platform-icon">iOS</span>
-                  <div class="device-copy"><h2>iPhone or iPad</h2><p>Connect your device with a cable. We’ll handle the rest.</p></div>
+                  <div class="device-copy"><h2>iPhone or iPad</h2><p id="ios-description">Connect your device with a cable. We’ll handle the rest.</p></div>
                   <div class="device-action"><span class="availability" id="ios-version">Checking…</span><button data-start="ios" disabled>Install</button></div>
                 </article>
               </div>
@@ -305,12 +323,15 @@ app.innerHTML = `
   </div>`;
 
 let dashboard: Dashboard | undefined;
+let iosDevices: IosDevice[] = [];
 let activePlatform: Platform = "android";
 let selectedPath: string | undefined;
 let preparedPath: string | undefined;
 let awaitingAndroidPermission = false;
 let awaitingAndroidInstaller = false;
 let refreshingAndroidState = false;
+let refreshingIosDevices = false;
+let refreshingIosSetup = false;
 const pendingAndroidInstallKey = "kanto.pendingAndroidInstall";
 
 type Stage = "prepare" | "connect" | "install";
@@ -408,6 +429,98 @@ function renderAndroidState() {
     description.textContent = "Install Kanto on this phone.";
     availability.textContent = `Kanto ${version}`;
     button.textContent = "Install";
+  }
+}
+
+function selectedIosDevice(): IosDevice | undefined {
+  const selected = document.querySelector<HTMLSelectElement>("#ios-device")?.value;
+  return iosDevices.find((device) => device.udid === selected) ?? iosDevices[0];
+}
+
+function restoreRememberedIosVersions(devices: IosDevice[]): IosDevice[] {
+  for (const device of devices) {
+    const key = `kanto.ios.installed.${device.udid}`;
+    if (device.kanto_installed && !device.installed_version) {
+      device.installed_version = localStorage.getItem(key);
+    } else if (device.inspection_available && !device.kanto_installed) {
+      localStorage.removeItem(key);
+    }
+  }
+  return devices;
+}
+
+function renderIosState() {
+  if (!dashboard || dashboard.host === "android") return;
+  const release = dashboard.ios;
+  const button = document.querySelector<HTMLButtonElement>('[data-start="ios"]')!;
+  const availability = document.querySelector<HTMLElement>("#ios-version")!;
+  const description = document.querySelector<HTMLElement>("#ios-description")!;
+  const install = document.querySelector<HTMLButtonElement>("#install-ios")!;
+  if (!release) {
+    description.textContent = "Kanto is unavailable right now.";
+    availability.textContent = "Not available";
+    button.textContent = "Unavailable";
+    button.disabled = true;
+    return;
+  }
+  const latest = release.release_version ?? dashboard.server?.version ?? "latest";
+  const device = selectedIosDevice();
+  button.disabled = false;
+  if (!device) {
+    description.textContent = "Connect your iPhone to check or install Kanto.";
+    availability.textContent = `Kanto ${latest}`;
+    button.textContent = "Install";
+    install.textContent = "Install Kanto";
+  } else if (!device.inspection_available) {
+    description.textContent = "Unlock your iPhone and tap Trust so Kanto can check it.";
+    availability.textContent = "Connected";
+    button.textContent = "Continue";
+    install.textContent = "Install Kanto";
+  } else if (!device.kanto_installed) {
+    description.textContent = "Kanto isn’t installed on this iPhone.";
+    availability.textContent = `Kanto ${latest}`;
+    button.textContent = "Install";
+    install.textContent = "Install Kanto";
+  } else if (device.installed_version === latest) {
+    description.textContent = "You have the latest version.";
+    availability.textContent = `Kanto ${latest}`;
+    button.textContent = "Reinstall";
+    install.textContent = "Reinstall Kanto";
+  } else {
+    description.textContent = "A new version is available.";
+    availability.textContent = `Kanto ${latest}`;
+    button.textContent = "Update";
+    install.textContent = "Update Kanto";
+  }
+}
+
+async function checkLauncherUpdate() {
+  const version = document.querySelector<HTMLElement>("#launcher-version")!;
+  const state = document.querySelector<HTMLElement>("#launcher-update-state")!;
+  const button = document.querySelector<HTMLButtonElement>("#launcher-update")!;
+  try {
+    const update = await invoke<LauncherUpdate>("check_launcher_update");
+    version.textContent = update.available
+      ? `Version ${update.latest_version} available`
+      : `Version ${update.current_version}`;
+    state.hidden = update.available;
+    state.textContent = "Up to date";
+    button.hidden = !update.available || !update.url;
+    button.dataset.url = update.url ?? "";
+  } catch {
+    version.textContent = "Couldn’t check";
+    state.textContent = "Try again later";
+  }
+}
+
+async function refreshIosDevices() {
+  if (refreshingIosDevices || dashboard?.host === "android") return;
+  refreshingIosDevices = true;
+  try {
+    iosDevices = restoreRememberedIosVersions(await invoke<IosDevice[]>("load_ios_devices"));
+    renderIosState();
+  } finally {
+    refreshingIosDevices = false;
   }
 }
 
@@ -523,17 +636,21 @@ async function prepare(sourcePath?: string) {
 }
 
 async function loadIosSetup() {
+  if (refreshingIosSetup) return;
+  refreshingIosSetup = true;
   const result = document.querySelector<HTMLElement>("#ios-result")!;
   const select = document.querySelector<HTMLSelectElement>("#ios-device")!;
   result.className = "result checking";
   result.textContent = "Looking for your iPhone…";
   try {
     const setup = await invoke<IosSetup>("load_ios_setup");
+    iosDevices = restoreRememberedIosVersions(setup.devices);
     select.replaceChildren(
       ...(setup.devices.length
         ? setup.devices.map((device) => new Option(device.name, device.udid))
         : [new Option("No device found", "")]),
     );
+    renderIosState();
     const sessionRow = document.querySelector<HTMLElement>("#apple-session-row")!;
     const session = document.querySelector<HTMLElement>("#apple-session")!;
     const loginFields = document.querySelector<HTMLElement>("#apple-login-fields")!;
@@ -557,6 +674,8 @@ async function loadIosSetup() {
   } catch (error) {
     result.className = "result bad";
     result.textContent = String(error);
+  } finally {
+    refreshingIosSetup = false;
   }
 }
 
@@ -746,6 +865,7 @@ async function load() {
       }
     } else {
       document.querySelector<HTMLElement>('[data-card="android"]')!.hidden = true;
+      await refreshIosDevices();
     }
   } catch {
     document.querySelector<HTMLElement>("#load-error")!.hidden = false;
@@ -808,6 +928,11 @@ document.querySelector("#open-install-settings")!.addEventListener("click", asyn
   }
 });
 document.querySelector("#refresh-ios")!.addEventListener("click", loadIosSetup);
+document.querySelector("#ios-device")!.addEventListener("change", renderIosState);
+document.querySelector("#launcher-update")!.addEventListener("click", () => {
+  const url = document.querySelector<HTMLButtonElement>("#launcher-update")!.dataset.url;
+  if (url) openUrl(url);
+});
 document.querySelector("#apple-login-fields")!.addEventListener("submit", (event) => {
   event.preventDefault();
   appleLogin();
@@ -840,7 +965,12 @@ guideViewer.addEventListener("click", (event) => {
   if (event.target === guideViewer) guideViewer.close();
 });
 const refreshAfterAndroidReturn = () => {
-  if (!document.hidden) window.setTimeout(refreshAndroidState, 150);
+  if (!document.hidden) {
+    window.setTimeout(() => {
+      if (dashboard?.host === "android") refreshAndroidState();
+      else refreshIosDevices();
+    }, 150);
+  }
 };
 document.addEventListener("visibilitychange", refreshAfterAndroidReturn);
 window.addEventListener("focus", refreshAfterAndroidReturn);
@@ -881,6 +1011,16 @@ listen<InstallFinished>("ios-install-finished", ({ payload }) => {
   result.textContent = payload.message;
   document.querySelector<HTMLButtonElement>("#install-ios")!.disabled = false;
   if (payload.success) {
+    const device = selectedIosDevice();
+    if (device) {
+      device.kanto_installed = true;
+      device.installed_version = dashboard?.ios?.release_version ?? null;
+      device.inspection_available = true;
+      if (device.installed_version) {
+        localStorage.setItem(`kanto.ios.installed.${device.udid}`, device.installed_version);
+      }
+      renderIosState();
+    }
     document.querySelectorAll<HTMLElement>("[data-stage]").forEach((item) => {
       item.classList.remove("current");
       item.classList.add("complete");
@@ -893,3 +1033,4 @@ listen<InstallFinished>("ios-install-finished", ({ payload }) => {
 });
 
 load();
+checkLauncherUpdate();
