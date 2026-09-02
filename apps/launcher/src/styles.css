@@ -302,7 +302,10 @@ input::placeholder { color: var(--faint); }
 .guide-heading h2 { margin: 5px 0 4px; font-size: 27px; letter-spacing: -0.035em; }
 .guide-heading p { margin: 0; color: var(--muted); font-size: 11px; }
 .guide-images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-height: 0; }
-.guide-images img { display: block; width: 100%; min-width: 0; aspect-ratio: 1; object-fit: contain; border: 1px solid var(--line); border-radius: 14px; background: oklch(12% 0.025 290); }
+.guide-shot { position: relative; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: oklch(12% 0.025 290); }
+.guide-shot:hover:not(:disabled) { background: oklch(17% 0.03 290); }
+.guide-shot img { display: block; width: 100%; min-width: 0; aspect-ratio: 1; object-fit: contain; }
+.guide-shot span { position: absolute; right: 9px; bottom: 9px; padding: 5px 8px; border: 1px solid oklch(96% 0.02 300 / 0.2); border-radius: 999px; color: var(--ink); background: oklch(10% 0.03 290 / 0.82); font-size: 8px; font-weight: 800; backdrop-filter: blur(8px); }
 .guide-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 0; padding: 0; list-style: none; counter-reset: guide-step; }
 .guide-steps li { display: grid; grid-template-columns: 24px 1fr; column-gap: 9px; counter-increment: guide-step; }
 .guide-steps li::before { content: counter(guide-step); display: grid; place-items: center; grid-row: 1 / 3; align-self: start; width: 24px; height: 24px; border-radius: 50%; color: oklch(99% 0 0); background: var(--crimson); font-size: 10px; font-weight: 850; }
@@ -311,6 +314,10 @@ input::placeholder { color: var(--faint); }
 .guide-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-top: 2px; }
 .guide-footer p { max-width: 620px; margin: 0; color: var(--faint); font-size: 9px; line-height: 1.45; }
 .guide-footer button { min-width: 104px; }
+.guide-viewer { width: auto; max-width: calc(100vw - 44px); max-height: calc(100vh - 44px); padding: 0; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 20px; background: oklch(10% 0.025 290 / 0.98); box-shadow: 0 34px 100px oklch(3% 0.04 295 / 0.82); }
+.guide-viewer::backdrop { background: oklch(3% 0.025 290 / 0.82); backdrop-filter: blur(12px); }
+.guide-viewer form { position: relative; display: grid; place-items: center; margin: 0; padding: 18px; }
+.guide-viewer img { display: block; width: auto; max-width: calc(100vw - 80px); height: auto; max-height: calc(100vh - 80px); border-radius: 12px; }
 
 @media (max-width: 860px) and (min-width: 701px) {
   .shell { grid-template-columns: 78px minmax(0, 1fr); }

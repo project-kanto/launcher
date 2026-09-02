@@ -220,9 +220,18 @@ app.innerHTML = `
           <p>Your iPhone may ask for this before Kanto can open. It only takes a minute.</p>
         </div>
         <div class="guide-images">
-          <img src="/guides/developer-mode-settings.webp" alt="iPhone Settings showing Privacy &amp; Security and the Developer Mode option.">
-          <img src="/guides/developer-mode-restart.webp" alt="iPhone Developer Mode switch and the Restart confirmation.">
-          <img src="/guides/developer-mode-confirm.webp" alt="iPhone confirmation and passcode screens shown after restarting.">
+          <button type="button" class="guide-shot" data-guide-image="/guides/developer-mode-settings.webp" aria-label="Enlarge the Settings screenshot">
+            <img src="/guides/developer-mode-settings.webp" alt="iPhone Settings showing Privacy &amp; Security and the Developer Mode option.">
+            <span>Enlarge</span>
+          </button>
+          <button type="button" class="guide-shot" data-guide-image="/guides/developer-mode-restart.webp" aria-label="Enlarge the restart screenshot">
+            <img src="/guides/developer-mode-restart.webp" alt="iPhone Developer Mode switch and the Restart confirmation.">
+            <span>Enlarge</span>
+          </button>
+          <button type="button" class="guide-shot" data-guide-image="/guides/developer-mode-confirm.webp" aria-label="Enlarge the confirmation screenshot">
+            <img src="/guides/developer-mode-confirm.webp" alt="iPhone confirmation and passcode screens shown after restarting.">
+            <span>Enlarge</span>
+          </button>
         </div>
         <ol class="guide-steps">
           <li><strong>Find Developer Mode</strong><span>Open Settings → Privacy &amp; Security, scroll down, then tap Developer Mode.</span></li>
@@ -233,6 +242,13 @@ app.innerHTML = `
           <p>Can’t see Developer Mode? Finish installing Kanto first, keep your iPhone connected, then check again. Your screens may look slightly different on newer iOS versions.</p>
           <button value="done">Got it</button>
         </div>
+      </form>
+    </dialog>
+
+    <dialog id="guide-image-viewer" class="guide-viewer" aria-label="Enlarged Developer Mode screenshot">
+      <form method="dialog">
+        <button class="guide-close" aria-label="Close enlarged screenshot">×</button>
+        <img alt="">
       </form>
     </dialog>
   </div>`;
@@ -583,6 +599,19 @@ document.querySelector("#two-factor")!.addEventListener("submit", (event) => {
 document.querySelector("#install-ios")!.addEventListener("click", installIos);
 document.querySelector("#developer-mode-help")!.addEventListener("click", () => {
   document.querySelector<HTMLDialogElement>("#developer-mode-guide")!.showModal();
+});
+const guideViewer = document.querySelector<HTMLDialogElement>("#guide-image-viewer")!;
+const guideViewerImage = guideViewer.querySelector<HTMLImageElement>("img")!;
+document.querySelectorAll<HTMLButtonElement>("[data-guide-image]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const thumbnail = button.querySelector<HTMLImageElement>("img")!;
+    guideViewerImage.src = button.dataset.guideImage!;
+    guideViewerImage.alt = thumbnail.alt;
+    guideViewer.showModal();
+  });
+});
+guideViewer.addEventListener("click", (event) => {
+  if (event.target === guideViewer) guideViewer.close();
 });
 document.querySelectorAll("[data-close-setup]").forEach((button) =>
   button.addEventListener("click", closeSetup),
