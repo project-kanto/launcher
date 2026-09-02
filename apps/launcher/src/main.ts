@@ -654,7 +654,10 @@ listen<InstallFinished>("ios-install-finished", ({ payload }) => {
       item.classList.remove("current");
       item.classList.add("complete");
     });
-    document.querySelector<HTMLDialogElement>("#developer-mode-guide")!.showModal();
+    if (!localStorage.getItem("kanto.developerModeGuideSeen")) {
+      document.querySelector<HTMLDialogElement>("#developer-mode-guide")!.showModal();
+      localStorage.setItem("kanto.developerModeGuideSeen", "1");
+    }
   }
 });
 
