@@ -130,8 +130,8 @@ app.innerHTML = `
               <h1>Adventure,<br>the way you remember it.</h1>
               <p>Kanto brings the original mobile adventure back online, with a growing world and a launcher that handles the fiddly bits.</p>
               <div class="hero-install">
-                <button class="hero-action" data-view="library"><span class="hero-action-label">Install Kanto</span><span aria-hidden="true">→</span></button>
-                <span class="hero-device-hint">Plug your iPhone or iPad into this computer first.</span>
+                <button class="hero-action" data-view="library" disabled><span class="hero-action-label">Install Kanto</span><span aria-hidden="true">→</span></button>
+                <span id="hero-device-hint" class="hero-device-hint">Plug your iPhone or iPad into this computer first.</span>
               </div>
             </div>
           </section>
@@ -451,25 +451,34 @@ function renderIosState() {
   const availability = document.querySelector<HTMLElement>("#ios-version")!;
   const description = document.querySelector<HTMLElement>("#ios-description")!;
   const install = document.querySelector<HTMLButtonElement>("#install-ios")!;
+  const hero = document.querySelector<HTMLButtonElement>(".hero-action")!;
+  const heroHint = document.querySelector<HTMLElement>("#hero-device-hint")!;
+  hero.disabled = true;
   if (!release) {
     description.textContent = "Kanto is unavailable right now.";
     availability.textContent = "Not available";
     button.textContent = "Unavailable";
     button.disabled = true;
+    heroHint.textContent = "Kanto is unavailable right now.";
     return;
   }
   const latest = release.release_version ?? dashboard.server?.version ?? "latest";
   const device = selectedIosDevice();
-  button.disabled = false;
+  const ready = Boolean(device?.inspection_available);
+  button.disabled = !ready;
+  hero.disabled = !ready;
+  if (ready && device) heroHint.textContent = `${device.name} is connected and ready.`;
   if (!device) {
-    description.textContent = "Connect your iPhone to check or install Kanto.";
-    availability.textContent = `Kanto ${latest}`;
-    button.textContent = "Install";
+    description.textContent = "Plug your iPhone or iPad into this computer to continue.";
+    availability.textContent = "Waiting for phone";
+    button.textContent = "Connect phone";
+    heroHint.textContent = "Plug your iPhone or iPad into this computer first.";
     install.textContent = "Install Kanto";
   } else if (!device.inspection_available) {
     description.textContent = "Unlock your iPhone and tap Trust so Kanto can check it.";
     availability.textContent = "Connected";
-    button.textContent = "Continue";
+    button.textContent = "Unlock phone";
+    heroHint.textContent = "Unlock your phone and tap Trust if asked.";
     install.textContent = "Install Kanto";
   } else if (!device.kanto_installed) {
     description.textContent = "Kanto isn’t installed on this iPhone.";
@@ -513,6 +522,9 @@ async function refreshIosDevices() {
   refreshingIosDevices = true;
   try {
     iosDevices = restoreRememberedIosVersions(await invoke<IosDevice[]>("load_ios_devices"));
+    renderIosState();
+  } catch {
+    iosDevices = [];
     renderIosState();
   } finally {
     refreshingIosDevices = false;
@@ -842,6 +854,8 @@ async function load() {
       document.querySelector("#play-heading")!.textContent = "Kanto for Android";
       document.querySelector("#play-copy")!.textContent = "Install or update Kanto on this phone.";
       document.querySelector(".hero-action-label")!.textContent = "Install Kanto";
+      document.querySelector<HTMLButtonElement>(".hero-action")!.disabled = false;
+      document.querySelector("#hero-device-hint")!.textContent = "Install Kanto directly on this device.";
       document.querySelector('[data-stage="prepare"] strong')!.textContent = "Get ready";
       document.querySelector('[data-stage="connect"] strong')!.textContent = "Prepare";
       document.querySelector('[data-stage="install"] strong')!.textContent = "Install";
@@ -1029,3 +1043,7 @@ listen<InstallFinished>("ios-install-finished", ({ payload }) => {
 
 load();
 checkLauncherUpdate();
+// ponytail: USB polling keeps hot-plug simple; use native device events if this becomes costly.
+window.setInterval(() => {
+  if (!document.hidden && dashboard?.host !== "android") refreshIosDevices();
+}, 3000);
