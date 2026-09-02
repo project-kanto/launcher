@@ -1,4 +1,5 @@
 import java.util.Properties
+import groovy.json.JsonSlurper
 
 plugins {
     id("com.android.application")
@@ -10,6 +11,32 @@ val tauriProperties = Properties().apply {
     val propFile = file("tauri.properties")
     if (propFile.exists()) {
         propFile.inputStream().use { load(it) }
+    }
+}
+
+val rustlsPlatformVerifier = run {
+    val metadata = providers.exec {
+        commandLine(
+            "cargo",
+            "metadata",
+            "--format-version",
+            "1",
+            "--filter-platform",
+            "aarch64-linux-android",
+            "--manifest-path",
+            file("../../../Cargo.toml").absolutePath,
+        )
+    }.standardOutput.asText.get()
+    @Suppress("UNCHECKED_CAST")
+    val packages = (JsonSlurper().parseText(metadata) as Map<String, Any>)["packages"] as List<Map<String, Any>>
+    val dependency = packages.first { it["name"] == "rustls-platform-verifier-android" }
+    Pair(File(File(dependency["manifest_path"] as String).parentFile, "maven"), dependency["version"] as String)
+}
+
+repositories {
+    maven {
+        url = uri(rustlsPlatformVerifier.first)
+        metadataSources { artifact() }
     }
 }
 
@@ -58,6 +85,7 @@ rust {
 }
 
 dependencies {
+    implementation("rustls:rustls-platform-verifier:${rustlsPlatformVerifier.second}@aar")
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.activity:activity-ktx:1.10.1")

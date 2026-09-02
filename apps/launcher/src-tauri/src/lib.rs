@@ -285,6 +285,29 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_kanto_device::init())
         .plugin(tauri_plugin_dialog::init());
+    #[cfg(target_os = "android")]
+    let builder = builder.setup(|app| {
+        let webview = app
+            .get_webview_window("main")
+            .ok_or_else(|| std::io::Error::other("the main Android webview is missing"))?;
+        webview.with_webview(|webview| {
+            webview.jni_handle().exec(|env, activity, _webview| {
+                let Ok(context) = env.new_local_ref(activity) else {
+                    return;
+                };
+                let raw_env = env.get_raw().cast();
+                let raw_context = context.into_raw().cast();
+                // jni 0.22 is required by rustls-platform-verifier; Tauri currently exposes jni 0.21.
+                let mut env = unsafe { jni_22::EnvUnowned::from_raw(raw_env) };
+                env.with_env(|env| {
+                    let context = unsafe { jni_22::objects::JObject::from_raw(env, raw_context) };
+                    rustls_platform_verifier::android::init_with_env(env, context)
+                })
+                .resolve::<jni_22::errors::LogErrorAndDefault>();
+            });
+        })?;
+        Ok(())
+    });
     #[cfg(desktop)]
     let builder = builder
         .manage(ios::IosState(std::sync::Mutex::new(None)))

@@ -87,7 +87,10 @@ app.innerHTML = `
     <main class="stage">
       <section class="page home-page" data-page="home">
         <header class="page-bar">
-          <div><span>Welcome back</span><strong>Kanto Launcher</strong></div>
+          <div class="page-identity">
+            <svg class="mobile-brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
+            <div><span>Welcome back</span><strong>Kanto Launcher</strong></div>
+          </div>
           <div id="server-status" class="status-pill status-loading" role="status"><span></span>Checking Kanto</div>
         </header>
 
@@ -97,7 +100,7 @@ app.innerHTML = `
               <span class="eyebrow">THE PRESERVED 2016 WORLD</span>
               <h1>Adventure,<br>the way you remember it.</h1>
               <p>Kanto brings the original mobile adventure back online, with a growing world and a launcher that handles the fiddly bits.</p>
-              <button class="hero-action" data-view="library">Play Kanto <span aria-hidden="true">→</span></button>
+              <button class="hero-action" data-view="library"><span class="hero-action-label">Play Kanto</span><span aria-hidden="true">→</span></button>
             </div>
             <div class="hero-scene" aria-hidden="true">
               <span class="orbit orbit-one"></span>
@@ -137,7 +140,10 @@ app.innerHTML = `
 
       <section class="page library-page" data-page="library" hidden>
         <header class="page-bar library-bar">
-          <div><span>Play</span><strong id="workspace-heading">Kanto</strong></div>
+          <div class="page-identity">
+            <svg class="mobile-brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
+            <div><span>Play</span><strong id="workspace-heading">Kanto</strong></div>
+          </div>
         </header>
 
         <div class="library-content">
@@ -150,8 +156,8 @@ app.innerHTML = `
           <section class="home-view">
             <div class="game-details">
               <p class="overline">PLAY KANTO</p>
-              <h1>Choose your phone</h1>
-              <p class="intro">We’ll guide you through installing Kanto from start to finish.</p>
+              <h1 id="play-heading">Choose your phone</h1>
+              <p id="play-copy" class="intro">We’ll guide you through installing Kanto from start to finish.</p>
 
               <div class="devices" aria-label="Choose your phone">
                 <article class="device" data-card="android">
@@ -360,6 +366,7 @@ async function prepare(sourcePath?: string) {
   const buttons = document.querySelectorAll<HTMLButtonElement>("#setup button");
   buttons.forEach((button) => (button.disabled = true));
   result.className = "result checking";
+  if (activePlatform === "android" && dashboard?.host === "android") setStage("connect");
   result.textContent = sourcePath
     ? "Preparing Kanto…"
     : hasCachedOriginal(activePlatform)
@@ -515,6 +522,7 @@ async function installAndroid() {
 async function load() {
   try {
     dashboard = await invoke<Dashboard>("load_dashboard");
+    app.dataset.host = dashboard.host;
     document.querySelector("#environment")!.textContent =
       dashboard.environment === "development" ? "DEV" : "LIVE";
     document.querySelector("#environment")!.className = `environment environment-${dashboard.environment}`;
@@ -542,12 +550,22 @@ async function load() {
     }
     if (dashboard.host === "android") {
       document.querySelector<HTMLElement>('[data-card="ios"]')!.hidden = true;
+      document.querySelector("#play-heading")!.textContent = "Install Kanto";
+      document.querySelector("#play-copy")!.textContent =
+        "Choose your original game once. Kanto will check it, prepare it, and open Android’s installer.";
+      document.querySelector(".hero-action-label")!.textContent = "Install Kanto";
+      document.querySelector('[data-stage="prepare"] strong')!.textContent = "Choose game";
+      document.querySelector('[data-stage="connect"] strong')!.textContent = "Prepare Kanto";
+      document.querySelector('[data-stage="install"] strong')!.textContent = "Install";
+      document.querySelector<HTMLButtonElement>('[data-start="android"]')!.textContent = "Get started";
       if (!dashboard.supports_32_bit_apps) {
         const compatibility = document.querySelector<HTMLElement>("#android-compatibility")!;
         compatibility.hidden = false;
         compatibility.textContent =
           "This phone can’t run 32-bit apps, so Kanto won’t install here. You can try it inside a VPhone-style environment.";
-        document.querySelector<HTMLButtonElement>('[data-start="android"]')!.disabled = true;
+        const install = document.querySelector<HTMLButtonElement>('[data-start="android"]')!;
+        install.textContent = "Not supported";
+        install.disabled = true;
       }
     } else {
       document.querySelector<HTMLElement>('[data-card="android"]')!.hidden = true;
