@@ -8,6 +8,19 @@ type Platform = "android" | "ios";
 interface Manifest {
   release_version?: string;
   source_url?: string;
+  output_sha256: string;
+}
+
+interface InstalledGame {
+  package_name: string;
+  version_name?: string;
+  sha256?: string;
+}
+
+interface AndroidState {
+  supports_32_bit_apps: boolean;
+  can_install_apps: boolean;
+  installed_game?: InstalledGame;
 }
 
 interface Dashboard {
@@ -19,6 +32,8 @@ interface Dashboard {
   cached_android_original: boolean;
   cached_ios_original: boolean;
   supports_32_bit_apps: boolean;
+  can_install_apps: boolean;
+  installed_android?: InstalledGame;
 }
 
 interface SourceCheck {
@@ -162,7 +177,7 @@ app.innerHTML = `
               <div class="devices" aria-label="Choose your phone">
                 <article class="device" data-card="android">
                   <span class="platform-icon">Android</span>
-                  <div class="device-copy"><h2>Android phone</h2><p>Install Kanto directly on your phone.</p><p id="android-compatibility" class="compatibility" hidden></p></div>
+                  <div class="device-copy"><h2>Android phone</h2><p id="android-description">Install Kanto directly on your phone.</p><p id="android-compatibility" class="compatibility" hidden></p></div>
                   <div class="device-action"><span class="availability" id="android-version">Checking…</span><button data-start="android" disabled>Install</button></div>
                 </article>
                 <article class="device" data-card="ios">
@@ -183,6 +198,7 @@ app.innerHTML = `
               <button id="download-original" hidden>Download Pokémon GO</button>
               <button id="choose-original" class="secondary">Choose Pokémon GO file</button>
               <button id="prepare-selected" hidden>Continue</button>
+              <button id="android-install-help" class="secondary" hidden>Installation help</button>
               <button id="install-android" hidden>Install Kanto</button>
             </div>
           </section>
@@ -255,7 +271,32 @@ app.innerHTML = `
       </form>
     </dialog>
 
-    <dialog id="guide-image-viewer" class="guide-viewer" aria-label="Enlarged Developer Mode screenshot">
+    <dialog id="android-install-guide" class="guide-dialog android-guide" aria-labelledby="android-install-guide-title">
+      <form method="dialog" class="guide-panel">
+        <button class="guide-close" aria-label="Close Android installation guide">×</button>
+        <div class="guide-heading">
+          <span>One Android setting</span>
+          <h2 id="android-install-guide-title">Allow Kanto to install the game</h2>
+          <p>Android asks for this once because Kanto is installed outside the Play Store.</p>
+        </div>
+        <div class="guide-images">
+          <button type="button" class="guide-shot" data-guide-image="/guides/android-unknown-sources.webp" aria-label="Enlarge the Android settings screenshot">
+            <img src="/guides/android-unknown-sources.webp" alt="Android Install unknown apps screen with Allow from this source turned off for Kanto Launcher.">
+            <span>Enlarge</span>
+          </button>
+        </div>
+        <ol class="guide-steps">
+          <li><strong>Open Android settings</strong><span>Kanto takes you directly to the right screen.</span></li>
+          <li><strong>Turn on the switch</strong><span>Enable Allow from this source, then return here. Kanto will continue automatically.</span></li>
+        </ol>
+        <div class="guide-footer">
+          <p>The wording may look slightly different on Samsung and other phones. Only allow Kanto Launcher.</p>
+          <div class="guide-actions"><button value="cancel" class="secondary">Not now</button><button type="button" id="open-install-settings">Open settings</button></div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="guide-image-viewer" class="guide-viewer" aria-label="Enlarged help screenshot">
       <form method="dialog">
         <button class="guide-close" aria-label="Close enlarged screenshot">×</button>
         <img alt="">
@@ -267,6 +308,9 @@ let dashboard: Dashboard | undefined;
 let activePlatform: Platform = "android";
 let selectedPath: string | undefined;
 let preparedPath: string | undefined;
+let awaitingAndroidPermission = false;
+let awaitingAndroidInstaller = false;
+let refreshingAndroidState = false;
 
 type Stage = "prepare" | "connect" | "install";
 
@@ -294,6 +338,7 @@ function setStage(stage: Stage) {
 }
 
 function closeSetup() {
+  awaitingAndroidPermission = false;
   app.classList.remove("setup-active");
   document.querySelector<HTMLElement>("#setup")!.hidden = true;
   document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
@@ -309,6 +354,72 @@ function hasCachedOriginal(platform: Platform): boolean {
   return platform === "android"
     ? Boolean(dashboard?.cached_android_original)
     : Boolean(dashboard?.cached_ios_original);
+}
+
+function hasCurrentAndroidBuild(): boolean {
+  const expected = dashboard?.android?.output_sha256;
+  const installed = dashboard?.installed_android?.sha256;
+  return Boolean(expected && installed && expected === installed);
+}
+
+function renderAndroidState() {
+  if (!dashboard || dashboard.host !== "android") return;
+  const release = dashboard.android;
+  const button = document.querySelector<HTMLButtonElement>('[data-start="android"]')!;
+  const availability = document.querySelector<HTMLElement>("#android-version")!;
+  const description = document.querySelector<HTMLElement>("#android-description")!;
+  const compatibility = document.querySelector<HTMLElement>("#android-compatibility")!;
+  compatibility.hidden = true;
+  button.dataset.androidAction = "install";
+
+  if (!dashboard.supports_32_bit_apps) {
+    description.textContent = "This phone only supports newer 64-bit apps.";
+    compatibility.hidden = false;
+    compatibility.textContent =
+      "Kanto needs 32-bit app support. You can try it inside a VPhone-style environment.";
+    availability.textContent = "Not compatible";
+    button.textContent = "Not supported";
+    button.disabled = true;
+    return;
+  }
+  if (!release) {
+    description.textContent = "Kanto is not available to install right now.";
+    availability.textContent = "Not available";
+    button.textContent = "Unavailable";
+    button.disabled = true;
+    return;
+  }
+  button.disabled = false;
+  const version = release.release_version ?? dashboard.server?.version ?? "latest";
+  if (hasCurrentAndroidBuild()) {
+    description.textContent = "The latest Kanto build is installed and ready.";
+    availability.textContent = `Installed · Kanto ${version}`;
+    button.textContent = "Open Kanto";
+    button.dataset.androidAction = "open";
+  } else if (dashboard.installed_android) {
+    description.textContent = "A newer Kanto build is ready to install.";
+    availability.textContent = `Update available · Kanto ${version}`;
+    button.textContent = "Update Kanto";
+  } else {
+    description.textContent = "Install Kanto directly on your phone.";
+    availability.textContent = `Kanto ${version}`;
+    button.textContent = "Install Kanto";
+  }
+}
+
+async function openAndroidGame() {
+  try {
+    await invoke("open_android_game");
+  } catch (error) {
+    const message = document.querySelector<HTMLElement>("#load-error")!;
+    message.textContent = String(error);
+    message.hidden = false;
+  }
+}
+
+function showAndroidInstallGuide() {
+  const guide = document.querySelector<HTMLDialogElement>("#android-install-guide")!;
+  if (!guide.open) guide.showModal();
 }
 
 function showSetup(platform: Platform) {
@@ -332,6 +443,7 @@ function showSetup(platform: Platform) {
   selectedPath = undefined;
   preparedPath = undefined;
   document.querySelector<HTMLButtonElement>("#prepare-selected")!.hidden = true;
+  document.querySelector<HTMLButtonElement>("#android-install-help")!.hidden = true;
   document.querySelector<HTMLButtonElement>("#install-android")!.hidden = true;
   document.querySelector<HTMLElement>("#ios-install")!.hidden = true;
   document.querySelector("#source-result")!.textContent = "";
@@ -385,6 +497,7 @@ async function prepare(sourcePath?: string) {
     }
     if (activePlatform === "android" && dashboard?.host === "android") {
       result.textContent = `Kanto ${prepared.release_version} is ready. Tap Install Kanto to finish.`;
+      document.querySelector<HTMLButtonElement>("#android-install-help")!.hidden = false;
       document.querySelector<HTMLButtonElement>("#install-android")!.hidden = false;
       setStage("install");
     } else {
@@ -505,17 +618,70 @@ async function installIos() {
 }
 
 async function installAndroid() {
+  if (hasCurrentAndroidBuild()) {
+    await openAndroidGame();
+    return;
+  }
   if (!preparedPath) return;
   const result = document.querySelector<HTMLElement>("#source-result")!;
+  if (!dashboard?.can_install_apps) {
+    showAndroidInstallGuide();
+    return;
+  }
   try {
     const install = await invoke<InstallResponse>("install_prepared", { path: preparedPath });
-    result.className = "result good";
-    result.textContent = install.needs_permission
-      ? "Allow Kanto to install apps, come back here, then tap Install Kanto again."
-      : "Android’s installer is open. Confirm Install to finish.";
+    if (install.needs_permission) {
+      if (dashboard) dashboard.can_install_apps = false;
+      showAndroidInstallGuide();
+      return;
+    }
+    awaitingAndroidInstaller = true;
+    result.className = "result checking";
+    result.textContent = "Android’s installer is open. Confirm Install, then return to Kanto Launcher.";
   } catch (error) {
     result.className = "result bad";
     result.textContent = String(error);
+  }
+}
+
+async function refreshAndroidState() {
+  if (!dashboard || dashboard.host !== "android" || refreshingAndroidState) return;
+  refreshingAndroidState = true;
+  try {
+    const state = await invoke<AndroidState>("load_android_state");
+    dashboard.supports_32_bit_apps = state.supports_32_bit_apps;
+    dashboard.can_install_apps = state.can_install_apps;
+    dashboard.installed_android = state.installed_game;
+    renderAndroidState();
+
+    if (awaitingAndroidPermission && state.can_install_apps) {
+      awaitingAndroidPermission = false;
+      const guide = document.querySelector<HTMLDialogElement>("#android-install-guide")!;
+      if (guide.open) guide.close();
+      await installAndroid();
+      return;
+    }
+    if (awaitingAndroidInstaller) {
+      awaitingAndroidInstaller = false;
+      const result = document.querySelector<HTMLElement>("#source-result")!;
+      const install = document.querySelector<HTMLButtonElement>("#install-android")!;
+      if (hasCurrentAndroidBuild()) {
+        document.querySelectorAll<HTMLElement>("[data-stage]").forEach((item) => {
+          item.classList.remove("current");
+          item.classList.add("complete");
+        });
+        result.className = "result good";
+        result.textContent = "Kanto is installed and ready to play.";
+        install.textContent = "Open Kanto";
+      } else {
+        result.className = "result bad";
+        result.textContent = "Installation wasn’t completed. Tap Install Kanto to try again.";
+      }
+    }
+  } catch {
+    // Keep the last known state; the normal dashboard error remains the recovery path.
+  } finally {
+    refreshingAndroidState = false;
   }
 }
 
@@ -557,16 +723,7 @@ async function load() {
       document.querySelector('[data-stage="prepare"] strong')!.textContent = "Choose game";
       document.querySelector('[data-stage="connect"] strong')!.textContent = "Prepare Kanto";
       document.querySelector('[data-stage="install"] strong')!.textContent = "Install";
-      document.querySelector<HTMLButtonElement>('[data-start="android"]')!.textContent = "Get started";
-      if (!dashboard.supports_32_bit_apps) {
-        const compatibility = document.querySelector<HTMLElement>("#android-compatibility")!;
-        compatibility.hidden = false;
-        compatibility.textContent =
-          "This phone can’t run 32-bit apps, so Kanto won’t install here. You can try it inside a VPhone-style environment.";
-        const install = document.querySelector<HTMLButtonElement>('[data-start="android"]')!;
-        install.textContent = "Not supported";
-        install.disabled = true;
-      }
+      renderAndroidState();
     } else {
       document.querySelector<HTMLElement>('[data-card="android"]')!.hidden = true;
     }
@@ -597,12 +754,37 @@ document.querySelectorAll<HTMLAnchorElement>('a[href^="https://kanto.ac/"]').for
   }),
 );
 document.querySelectorAll<HTMLButtonElement>("[data-start]").forEach((button) =>
-  button.addEventListener("click", () => showSetup(button.dataset.start as Platform)),
+  button.addEventListener("click", () => {
+    if (button.dataset.start === "android" && button.dataset.androidAction === "open") {
+      openAndroidGame();
+    } else {
+      showSetup(button.dataset.start as Platform);
+    }
+  }),
 );
 document.querySelector("#choose-original")!.addEventListener("click", chooseOriginal);
 document.querySelector("#download-original")!.addEventListener("click", () => prepare());
 document.querySelector("#prepare-selected")!.addEventListener("click", () => prepare(selectedPath));
 document.querySelector("#install-android")!.addEventListener("click", installAndroid);
+document.querySelector("#android-install-help")!.addEventListener("click", () => {
+  showAndroidInstallGuide();
+});
+document.querySelector("#android-install-guide")!.addEventListener("close", () => {
+  if (!dashboard?.can_install_apps) awaitingAndroidPermission = false;
+});
+document.querySelector("#open-install-settings")!.addEventListener("click", async () => {
+  const result = document.querySelector<HTMLElement>("#source-result")!;
+  try {
+    awaitingAndroidPermission = true;
+    result.className = "result checking";
+    result.textContent = "Turn on Allow from this source, then return here.";
+    await invoke("open_android_install_settings");
+  } catch (error) {
+    awaitingAndroidPermission = false;
+    result.className = "result bad";
+    result.textContent = String(error);
+  }
+});
 document.querySelector("#refresh-ios")!.addEventListener("click", loadIosSetup);
 document.querySelector("#apple-login-fields")!.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -635,6 +817,11 @@ document.querySelectorAll<HTMLButtonElement>("[data-guide-image]").forEach((butt
 guideViewer.addEventListener("click", (event) => {
   if (event.target === guideViewer) guideViewer.close();
 });
+const refreshAfterAndroidReturn = () => {
+  if (!document.hidden) window.setTimeout(refreshAndroidState, 150);
+};
+document.addEventListener("visibilitychange", refreshAfterAndroidReturn);
+window.addEventListener("focus", refreshAfterAndroidReturn);
 document.querySelectorAll("[data-close-setup]").forEach((button) =>
   button.addEventListener("click", closeSetup),
 );

@@ -3,7 +3,7 @@ use std::{io::Read, path::PathBuf, time::Duration};
 use kanto_release::{GameReleaseManifest, sha256};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tauri::Manager;
-use tauri_plugin_kanto_device::KantoDeviceExt;
+use tauri_plugin_kanto_device::{DeviceCapabilities, GameRequest, InstalledGame, KantoDeviceExt};
 
 #[cfg(desktop)]
 mod ios;
@@ -31,6 +31,8 @@ struct Dashboard {
     cached_android_original: bool,
     cached_ios_original: bool,
     supports_32_bit_apps: bool,
+    can_install_apps: bool,
+    installed_android: Option<InstalledGame>,
 }
 
 #[derive(Serialize)]
@@ -146,6 +148,53 @@ async fn cached_original(
     (sha256(&bytes) == manifest.input_sha256).then_some(bytes)
 }
 
+fn android_package() -> &'static str {
+    if API_BASE.contains("dev.kanto.ac") {
+        "ac.kanto.client.dev"
+    } else {
+        "ac.kanto.client"
+    }
+}
+
+fn android_state(app: &tauri::AppHandle) -> DeviceCapabilities {
+    app.kanto_device()
+        .capabilities(GameRequest {
+            package_name: android_package().to_owned(),
+        })
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn load_android_state(app: tauri::AppHandle) -> DeviceCapabilities {
+    android_state(&app)
+}
+
+#[tauri::command]
+fn open_android_game(app: tauri::AppHandle) -> Result<(), String> {
+    let response = app
+        .kanto_device()
+        .open_game(GameRequest {
+            package_name: android_package().to_owned(),
+        })
+        .map_err(|_| "Kanto isn't installed yet.".to_owned())?;
+    response
+        .opened
+        .then_some(())
+        .ok_or_else(|| "Kanto couldn't open the game.".to_owned())
+}
+
+#[tauri::command]
+fn open_android_install_settings(app: tauri::AppHandle) -> Result<(), String> {
+    let response = app
+        .kanto_device()
+        .open_install_settings()
+        .map_err(|_| "Kanto couldn't open Android's install permission.".to_owned())?;
+    response
+        .opened
+        .then_some(())
+        .ok_or_else(|| "Kanto couldn't open Android's install permission.".to_owned())
+}
+
 #[tauri::command]
 async fn load_dashboard(app: tauri::AppHandle) -> Dashboard {
     let client = http_client(10);
@@ -161,6 +210,7 @@ async fn load_dashboard(app: tauri::AppHandle) -> Dashboard {
     } else {
         false
     };
+    let android_state = android_state(&app);
     Dashboard {
         host: std::env::consts::OS,
         environment: if API_BASE.contains("dev.kanto.ac") {
@@ -173,11 +223,9 @@ async fn load_dashboard(app: tauri::AppHandle) -> Dashboard {
         ios,
         cached_android_original,
         cached_ios_original,
-        supports_32_bit_apps: app
-            .kanto_device()
-            .capabilities()
-            .map(|capabilities| capabilities.supports_32_bit_apps)
-            .unwrap_or(false),
+        supports_32_bit_apps: android_state.supports_32_bit_apps,
+        can_install_apps: android_state.can_install_apps,
+        installed_android: android_state.installed_game,
     }
 }
 
@@ -313,6 +361,9 @@ pub fn run() {
         .manage(ios::IosState(std::sync::Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             load_dashboard,
+            load_android_state,
+            open_android_game,
+            open_android_install_settings,
             verify_original,
             prepare_release,
             install_prepared,
@@ -324,6 +375,9 @@ pub fn run() {
     #[cfg(mobile)]
     let builder = builder.invoke_handler(tauri::generate_handler![
         load_dashboard,
+        load_android_state,
+        open_android_game,
+        open_android_install_settings,
         verify_original,
         prepare_release,
         install_prepared

@@ -25,15 +25,27 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct KantoDevice<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> KantoDevice<R> {
-    pub fn capabilities(&self) -> crate::Result<DeviceCapabilities> {
+    pub fn capabilities(&self, request: GameRequest) -> crate::Result<DeviceCapabilities> {
         self.0
-            .run_mobile_plugin("capabilities", ())
+            .run_mobile_plugin("capabilities", request)
             .map_err(Into::into)
     }
 
     pub fn install(&self, request: InstallRequest) -> crate::Result<InstallResponse> {
         self.0
             .run_mobile_plugin("install", request)
+            .map_err(Into::into)
+    }
+
+    pub fn open_game(&self, request: GameRequest) -> crate::Result<ActionResponse> {
+        self.0
+            .run_mobile_plugin("openGame", request)
+            .map_err(Into::into)
+    }
+
+    pub fn open_install_settings(&self) -> crate::Result<ActionResponse> {
+        self.0
+            .run_mobile_plugin("openInstallSettings", ())
             .map_err(Into::into)
     }
 }

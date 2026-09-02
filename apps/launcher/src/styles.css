@@ -317,6 +317,13 @@ input::placeholder { color: var(--faint); }
 .guide-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-top: 2px; }
 .guide-footer p { max-width: 620px; margin: 0; color: var(--faint); font-size: 9px; line-height: 1.45; }
 .guide-footer button { min-width: 104px; }
+.guide-actions { display: flex; gap: 8px; }
+.android-guide { width: min(620px, calc(100vw - 42px)); }
+.android-guide .guide-panel { grid-template-columns: minmax(0, 224px) minmax(0, 1fr); }
+.android-guide .guide-heading, .android-guide .guide-footer { grid-column: 1 / -1; }
+.android-guide .guide-images { grid-template-columns: minmax(0, 190px); justify-content: center; }
+.android-guide .guide-shot img { aspect-ratio: 9 / 16; }
+.android-guide .guide-steps { grid-template-columns: 1fr; align-content: center; gap: 22px; }
 .guide-viewer { width: auto; max-width: calc(100vw - 44px); max-height: calc(100vh - 44px); padding: 0; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 20px; background: oklch(10% 0.025 290 / 0.98); box-shadow: 0 34px 100px oklch(3% 0.04 295 / 0.82); }
 .guide-viewer::backdrop { background: oklch(3% 0.025 290 / 0.82); backdrop-filter: blur(12px); }
 .guide-viewer form { position: relative; display: grid; place-items: center; margin: 0; padding: 18px; }
@@ -451,6 +458,14 @@ input::placeholder { color: var(--faint); }
   .guide-panel { padding: 20px 16px; }
   .guide-images { min-width: 620px; }
   .guide-steps { grid-template-columns: 1fr; }
+  .android-guide .guide-panel { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; }
+  .android-guide .guide-heading, .android-guide .guide-footer { grid-column: 1 / -1; }
+  .android-guide .guide-images { grid-template-columns: 112px; min-width: 0; }
+  .android-guide .guide-steps { gap: 14px; }
+  .android-guide .guide-footer { flex-direction: row; justify-content: flex-end; }
+  .android-guide .guide-footer > p { display: none; }
+  .android-guide .guide-actions { width: 100%; }
+  .android-guide .guide-actions button { flex: 1; min-width: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
