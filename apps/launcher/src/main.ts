@@ -131,14 +131,6 @@ app.innerHTML = `
               <p>Kanto brings the original mobile adventure back online, with a growing world and a launcher that handles the fiddly bits.</p>
               <button class="hero-action" data-view="library"><span class="hero-action-label">Play Kanto</span><span aria-hidden="true">→</span></button>
             </div>
-            <div class="hero-scene" aria-hidden="true">
-              <span class="orbit orbit-one"></span>
-              <span class="orbit orbit-two"></span>
-              <span class="planet"></span>
-              <span class="hero-mark">
-                <svg viewBox="0 0 32 32"><path class="mark-page" d="M7 0h18a7 7 0 0 1 7 7v16l-9 9H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7z"/><path class="mark-fold" d="M32 23l-9 9v-9z"/><g class="mark-letter" fill="none" stroke-width="5.4"><path d="M9.6 6.4v19.2"/><path d="M22.6 6.4L11.2 16l7.8 6.6"/></g></svg>
-              </span>
-            </div>
           </section>
 
           <div class="home-lower">
